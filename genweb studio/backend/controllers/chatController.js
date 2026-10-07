@@ -255,15 +255,15 @@ async function discoverModels(apiKey) {
     return !nonTextKeywords.some(keyword => lower.includes(keyword));
   });
 
-  // Prioritize proven fast and reliable models first
+  // Prioritize proven fast and reliable models first (gemini-3.5-flash-lite is active and ultra-fast)
   const preferredPriority = [
-    "gemini-flash-lite-latest",
-    "gemini-3.7-flash",
-    "gemini-3.6-flash",
-    "gemini-3.5-flash",
     "gemini-3.5-flash-lite",
+    "gemini-3.5-flash",
+    "gemini-flash-lite-latest",
     "gemini-3.1-flash-lite",
     "gemini-3.8-flash",
+    "gemini-3.7-flash",
+    "gemini-3.6-flash",
     "gemini-flash-latest",
     "gemini-pro-latest"
   ];
@@ -295,22 +295,52 @@ async function callGeminiAPI(systemInstruction, userPrompt) {
   let lastError = null;
 
   for (const modelName of models) {
-    // 1. Try Interactions API first (recommended by Google for Gemini 3.x)
-    try {
-      console.log(`[GenWeb AI] Trying Interactions API (${modelName})...`);
-      const text = await callInteractionsAPI(apiKey, modelName, systemInstruction, userPrompt);
-      if (text) {
-        console.log(`[GenWeb AI] Success via Interactions API (${modelName})!`);
-        return text;
+    // 1. Try direct REST generateContent endpoint (v1beta and v1)
+    for (const ver of ["v1beta", "v1"]) {
+      try {
+        console.log(`[GenWeb AI] Trying REST generateContent ${ver} (${modelName})...`);
+        const url = `https://generativelanguage.googleapis.com/${ver}/models/${modelName}:generateContent?key=${encodeURIComponent(apiKey)}`;
+        const payload = {
+          systemInstruction: { parts: [{ text: systemInstruction }] },
+          contents: [{ role: "user", parts: [{ text: userPrompt }] }],
+          generationConfig: { responseMimeType: "application/json", temperature: 0.2 },
+        };
+
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 28000);
+
+        const response = await fetch(url, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "x-goog-api-key": apiKey,
+          },
+          body: JSON.stringify(payload),
+          signal: controller.signal
+        });
+        clearTimeout(timeoutId);
+
+        if (response.ok) {
+          const data = await response.json();
+          const text = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+          if (text) {
+            console.log(`[GenWeb AI] Success via REST ${ver} (${modelName})!`);
+            return text;
+          }
+        } else {
+          const errText = await response.text();
+          console.warn(`[GenWeb AI] REST ${ver} (${modelName}) returned ${response.status}:`, errText.slice(0, 100));
+          lastError = new Error(`Google API [${ver}/${modelName}]: ${response.status} - ${errText.slice(0, 80)}`);
+        }
+      } catch (restErr) {
+        console.warn(`[GenWeb AI] REST ${ver} (${modelName}) error:`, restErr.message);
+        lastError = restErr;
       }
-    } catch (intErr) {
-      console.warn(`[GenWeb AI] Interactions API (${modelName}) failed:`, intErr.message);
-      lastError = intErr;
     }
 
-    // 2. Try official SDK
+    // 2. Try SDK fallback
     try {
-      console.log(`[GenWeb AI] Trying Generative AI SDK (${modelName})...`);
+      console.log(`[GenWeb AI] Trying SDK fallback (${modelName})...`);
       const model = genAI.getGenerativeModel({
         model: modelName,
         systemInstruction: systemInstruction,
@@ -329,43 +359,6 @@ async function callGeminiAPI(systemInstruction, userPrompt) {
     } catch (sdkErr) {
       console.warn(`[GenWeb AI] SDK (${modelName}) failed:`, sdkErr.message);
       lastError = sdkErr;
-    }
-
-    // 3. Try direct REST generateContent endpoint (v1beta and v1)
-    for (const ver of ["v1beta", "v1"]) {
-      try {
-        console.log(`[GenWeb AI] Trying REST generateContent ${ver} (${modelName})...`);
-        const url = `https://generativelanguage.googleapis.com/${ver}/models/${modelName}:generateContent?key=${encodeURIComponent(apiKey)}`;
-        const payload = {
-          systemInstruction: { parts: [{ text: systemInstruction }] },
-          contents: [{ role: "user", parts: [{ text: userPrompt }] }],
-          generationConfig: { responseMimeType: "application/json", temperature: 0.2 },
-        };
-
-        const response = await fetch(url, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "x-goog-api-key": apiKey,
-          },
-          body: JSON.stringify(payload),
-        });
-
-        if (response.ok) {
-          const data = await response.json();
-          const text = data?.candidates?.[0]?.content?.parts?.[0]?.text;
-          if (text) {
-            console.log(`[GenWeb AI] Success via REST ${ver} (${modelName})!`);
-            return text;
-          }
-        } else {
-          const errText = await response.text();
-          console.warn(`[GenWeb AI] REST ${ver} (${modelName}) returned ${response.status}:`, errText);
-          lastError = new Error(`Google API [${ver}/${modelName}]: ${response.status} - ${errText}`);
-        }
-      } catch (restErr) {
-        lastError = restErr;
-      }
     }
   }
 

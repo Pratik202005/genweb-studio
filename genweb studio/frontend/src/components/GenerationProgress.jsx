@@ -39,7 +39,7 @@ export const GENERATION_STAGES = [
   {
     id: 5,
     title: "Mounting Live Preview",
-    description: "Attaching drag handles and compiling preview",
+    description: "Compiling layout structure and rendering live preview",
     icon: Sparkles,
   },
 ];
@@ -68,7 +68,7 @@ export function useGenerationTracker(loading) {
   if (elapsedSec < 3) activeStageIndex = 0;
   else if (elapsedSec < 7) activeStageIndex = 1;
   else if (elapsedSec < 12) activeStageIndex = 2;
-  else if (elapsedSec < 16) activeStageIndex = 3;
+  else if (elapsedSec < 17) activeStageIndex = 3;
   else activeStageIndex = 4;
 
   let progressPercent = 10;
@@ -78,10 +78,10 @@ export function useGenerationTracker(loading) {
     progressPercent = 30 + ((elapsedSec - 3) / 4) * 25;
   } else if (elapsedSec <= 12) {
     progressPercent = 55 + ((elapsedSec - 7) / 5) * 25;
-  } else if (elapsedSec <= 16) {
-    progressPercent = 80 + ((elapsedSec - 12) / 4) * 12;
+  } else if (elapsedSec <= 17) {
+    progressPercent = 80 + ((elapsedSec - 12) / 5) * 14;
   } else {
-    progressPercent = Math.min(96, 92 + (elapsedSec - 16) * 0.5);
+    progressPercent = Math.min(99, 94 + (elapsedSec - 17) * 0.25);
   }
 
   const formattedTime = `0:${elapsedSec < 10 ? '0' : ''}${elapsedSec}s`;

@@ -612,6 +612,16 @@ const MainPagePlain = () => {
   }
   .genweb-draggable-item {
     position: relative !important;
+    cursor: grab !important;
+    transition: outline 0.15s ease, box-shadow 0.15s ease !important;
+  }
+  .genweb-draggable-item:hover {
+    outline: 2px dotted #6366f1 !important;
+    outline-offset: -2px !important;
+    cursor: grab !important;
+  }
+  .genweb-draggable-item:active {
+    cursor: grabbing !important;
   }
   .genweb-draggable-item.genweb-dragging {
     opacity: 0.35 !important;

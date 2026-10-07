@@ -10,8 +10,24 @@ const UserContext = createContext();
 export const useUser = () => useContext(UserContext);
 
 export const UserProvider = ({ children }) => {
-  const [user, setUser] = useState(null);
+  const [user, setUser] = useState(() => {
+    try {
+      const saved = localStorage.getItem("genweb_user");
+      return saved ? JSON.parse(saved) : null;
+    } catch (e) {
+      return null;
+    }
+  });
   const [authLoading, setAuthLoading] = useState(false);
+
+  // Sync user state to localStorage
+  useEffect(() => {
+    if (user) {
+      localStorage.setItem("genweb_user", JSON.stringify(user));
+    } else {
+      localStorage.removeItem("genweb_user");
+    }
+  }, [user]);
 
   // Check existing session on load
   useEffect(() => {

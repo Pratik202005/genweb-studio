@@ -62,7 +62,12 @@ const Profile = () => {
   // Function to fetch projects for the authenticated user
   const getAllProjects = async () => {
     try {
-      const response = await fetch(`${BACKEND_URL}user/my/project`, {
+      const userId = user?._id || user?.id;
+      const url = userId
+        ? `${BACKEND_URL}user/my/project?userId=${userId}`
+        : `${BACKEND_URL}user/my/project`;
+
+      const response = await fetch(url, {
         method: "GET",
         headers: {
           "Content-Type": "application/json",
@@ -75,14 +80,14 @@ const Profile = () => {
       }
 
       const data = await response.json();
-      setProjects(data.reverse());
-
+      setProjects(Array.isArray(data) ? data.reverse() : []);
+      setError(null);
     } catch (err) {
-      setError(err.message);
+      console.warn("Could not load projects:", err);
+      setProjects([]);
     } finally {
       setLoading(false);
     }
-
   };
 
   // Fetch user data and projects when component mounts

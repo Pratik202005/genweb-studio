@@ -3,42 +3,13 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faReact, faHtml5, faCss3Alt, faSquareJs  } from "@fortawesome/free-brands-svg-icons";
 import Swal from 'sweetalert2';
 
-const handleRedirect = (projectType, id, title, description) => {
-  if (id && !String(id).startsWith('dummy-')) {
-    const isReact = projectType === true || projectType === "react";
-    if (isReact) {
-        window.location.href = '/main/react/' + id;
-    } else {
-        window.location.href = '/main/plain/' + id;
-    }
+const handleRedirect = (projectType, id) => {
+  if (!id) return;
+  const isReact = projectType === true || projectType === "react";
+  if (isReact) {
+    window.location.href = '/main/react/' + id;
   } else {
-    Swal.fire({
-      icon: 'info',
-      title: `<span class="text-white font-bold">${title || 'Showcase Project'}</span>`,
-      html: `
-        <div class="text-left text-zinc-300 text-sm space-y-3 pt-2">
-          <p>${description || 'Curated community project template synthesized with GenWeb Studio.'}</p>
-          <div class="p-3 bg-zinc-800/80 rounded-xl text-xs text-zinc-300 flex items-center justify-between">
-            <span>Framework:</span>
-            <strong class="text-indigo-400 font-semibold uppercase">${projectType === 'react' || projectType === true ? 'React.js' : 'HTML / CSS / JS'}</strong>
-          </div>
-        </div>
-      `,
-      showCancelButton: true,
-      confirmButtonText: 'Generate Website',
-      cancelButtonText: 'Close',
-      confirmButtonColor: '#6366F1',
-      cancelButtonColor: '#27272A',
-      background: '#121214',
-      color: '#F4F4F5',
-      customClass: {
-        popup: 'border border-zinc-800 rounded-2xl shadow-2xl',
-      }
-    }).then((res) => {
-      if (res.isConfirmed) {
-        window.location.href = '/';
-      }
-    });
+    window.location.href = '/main/plain/' + id;
   }
 };
 

@@ -18,10 +18,11 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
   faBarsStaggered, faCode, faWindowMaximize, faWandMagicSparkles,
   faFileArrowDown, faRocket, faFloppyDisk,
-  faHexagonNodes, faCopy, faLock, faArrowLeft
+  faHexagonNodes, faCopy, faLock, faArrowLeft, faArrowsUpDown
 }
   from "@fortawesome/free-solid-svg-icons";
 import { faReact, faHtml5, faCss3Alt, faSquareJs } from "@fortawesome/free-brands-svg-icons";
+import { SHOWCASE_TEMPLATES } from '../data/showcaseTemplates';
 import { 
   useGenerationTracker, 
   GenerationChatCard, 
@@ -284,6 +285,17 @@ const MainPagePlain = () => {
   }, []);
   
   const getProjectData = async (pid) => {
+    if (!pid) return;
+    if (String(pid).startsWith('dummy-')) {
+      const template = SHOWCASE_TEMPLATES[pid];
+      if (template && (template.projectType === 'react' || template.projectType === true)) {
+        console.log("[GenWeb Studio] Detected React showcase project. Redirecting to /main/react/" + pid);
+        window.location.replace(`/main/react/${pid}`);
+        return;
+      }
+      setUserIsOwner(true);
+      return;
+    }
     try {
         const response = await fetch(`${BACKEND_URL}project/${pid}`, {
             method: "GET",
@@ -446,6 +458,136 @@ const MainPagePlain = () => {
     });
   };
 
+  const handleOpenSectionReorderModal = () => {
+    const parseSections = () => {
+      try {
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(generatedHTML, 'text/html');
+        const container = doc.getElementById('layout') || doc.body;
+        const elements = Array.from(container.children).filter(el => 
+          !['SCRIPT', 'STYLE', 'LINK', 'META', 'BASE'].includes(el.tagName) &&
+          el.id !== 'theme-toggle' && !el.id?.startsWith('genweb-')
+        );
+        return { elements, container, doc };
+      } catch (e) {
+        return { elements: [], container: null, doc: null };
+      }
+    };
+
+    const getSectionTitle = (el, index) => {
+      const tag = el.tagName.toLowerCase();
+      const id = (el.id || "").toLowerCase();
+      const cls = (el.className || "").toLowerCase();
+      if (tag === 'header' || id.includes('header') || id.includes('nav')) return "Header / Navbar";
+      if (id.includes('hero') || cls.includes('hero')) return "Hero Banner";
+      if (id.includes('about') || cls.includes('about')) return "About Section";
+      if (id.includes('feature') || cls.includes('feature')) return "Features Section";
+      if (id.includes('project') || id.includes('work') || id.includes('portfolio')) return "Portfolio / Projects";
+      if (id.includes('service')) return "Services Section";
+      if (id.includes('skill')) return "Skills Section";
+      if (id.includes('pricing')) return "Pricing Section";
+      if (id.includes('testimonial') || id.includes('review')) return "Testimonials";
+      if (id.includes('contact') || cls.includes('contact')) return "Contact Section";
+      if (id.includes('faq')) return "FAQ Section";
+      if (tag === 'footer' || id.includes('footer')) return "Footer Section";
+      const heading = el.querySelector('h1, h2, h3, h4')?.textContent?.trim();
+      return heading ? heading.slice(0, 26) : `${el.tagName} Section #${index + 1}`;
+    };
+
+    const renderListHtml = () => {
+      const { elements } = parseSections();
+      if (!elements || elements.length === 0) {
+        return `<div class="p-6 text-center text-zinc-400 text-sm">No modular sections found to reorder yet. Generate a website first!</div>`;
+      }
+      return `
+        <div class="space-y-3 pt-2 text-left">
+          <p class="text-xs text-zinc-400">Move sections up or down to rearrange page layout in real time:</p>
+          <div class="max-h-[340px] overflow-y-auto space-y-2 pr-1" id="reorder-sections-list">
+            ${elements.map((el, i) => `
+              <div class="flex items-center justify-between p-2.5 bg-zinc-800/90 border border-zinc-700/80 rounded-xl hover:border-indigo-500/50 transition">
+                <div class="flex items-center gap-2.5 min-w-0">
+                  <span class="text-xs font-mono font-bold text-indigo-400 bg-indigo-950/60 px-2 py-0.5 rounded border border-indigo-800/50">#${i + 1}</span>
+                  <span class="text-xs font-semibold text-zinc-100 truncate">${getSectionTitle(el, i)}</span>
+                </div>
+                <div class="flex items-center gap-1.5 shrink-0">
+                  <button type="button" data-move-up="${i}" ${i === 0 ? 'disabled' : ''} 
+                    class="px-2.5 py-1 bg-zinc-700 hover:bg-zinc-600 disabled:opacity-25 text-zinc-100 rounded-lg text-xs font-bold transition">
+                    ▲ Up
+                  </button>
+                  <button type="button" data-move-down="${i}" ${i === elements.length - 1 ? 'disabled' : ''} 
+                    class="px-2.5 py-1 bg-zinc-700 hover:bg-zinc-600 disabled:opacity-25 text-zinc-100 rounded-lg text-xs font-bold transition">
+                    ▼ Down
+                  </button>
+                </div>
+              </div>
+            `).join('')}
+          </div>
+        </div>
+      `;
+    };
+
+    const attachMoveListeners = () => {
+      const listEl = document.getElementById('reorder-sections-list');
+      if (!listEl) return;
+      
+      listEl.querySelectorAll('button[data-move-up]').forEach(btn => {
+        btn.onclick = (e) => {
+          e.stopPropagation();
+          const idx = parseInt(btn.getAttribute('data-move-up'), 10);
+          if (idx > 0) {
+            swapSections(idx, idx - 1);
+          }
+        };
+      });
+
+      listEl.querySelectorAll('button[data-move-down]').forEach(btn => {
+        btn.onclick = (e) => {
+          e.stopPropagation();
+          const idx = parseInt(btn.getAttribute('data-move-down'), 10);
+          swapSections(idx, idx + 1);
+        };
+      });
+    };
+
+    const swapSections = (fromIdx, toIdx) => {
+      const { elements, container, doc } = parseSections();
+      if (!container || fromIdx < 0 || fromIdx >= elements.length || toIdx < 0 || toIdx >= elements.length) return;
+      
+      const moved = elements[fromIdx];
+      const target = elements[toIdx];
+      if (fromIdx < toIdx) {
+        container.insertBefore(moved, target.nextSibling);
+      } else {
+        container.insertBefore(moved, target);
+      }
+
+      const newHtml = doc.getElementById('layout') ? doc.getElementById('layout').outerHTML : doc.body.innerHTML;
+      setGeneratedHTML(newHtml);
+
+      const swalContent = Swal.getHtmlContainer();
+      if (swalContent) {
+        swalContent.innerHTML = renderListHtml();
+        attachMoveListeners();
+      }
+    };
+
+    Swal.fire({
+      title: '<span class="text-white text-lg font-bold flex items-center justify-center gap-2"><span>⠿</span> Reorder Page Sections</span>',
+      html: renderListHtml(),
+      showConfirmButton: true,
+      confirmButtonText: 'Done',
+      confirmButtonColor: '#6366f1',
+      background: '#121214',
+      color: '#f4f4f5',
+      customClass: {
+        popup: 'border border-zinc-800 rounded-2xl shadow-2xl max-w-md w-full',
+      },
+      didOpen: () => {
+        attachMoveListeners();
+      }
+    });
+  };
+
   const onActionBtn = (action) => {
     if (action === "deploy") {
       handleDeploySite();
@@ -465,41 +607,11 @@ const MainPagePlain = () => {
     overflow-y: auto !important;
     scroll-behavior: auto !important;
   }
+  .genweb-drag-handle, #theme-toggle {
+    display: none !important;
+  }
   .genweb-draggable-item {
     position: relative !important;
-    cursor: grab !important;
-    transition: outline 0.15s ease, opacity 0.2s ease, box-shadow 0.2s ease !important;
-  }
-  .genweb-draggable-item:hover {
-    outline: 2px dashed rgba(99, 102, 241, 0.5) !important;
-    outline-offset: -2px !important;
-  }
-  .genweb-drag-handle {
-    position: absolute !important;
-    top: 8px !important;
-    right: 12px !important;
-    background: rgba(30, 27, 75, 0.9) !important;
-    color: #c7d2fe !important;
-    border: 1px solid rgba(129, 140, 248, 0.4) !important;
-    border-radius: 9999px !important;
-    padding: 3px 10px !important;
-    font-size: 11px !important;
-    font-family: system-ui, -apple-system, sans-serif !important;
-    font-weight: 600 !important;
-    display: inline-flex !important;
-    align-items: center !important;
-    gap: 4px !important;
-    cursor: grab !important;
-    z-index: 9999 !important;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.25) !important;
-    opacity: 0.8 !important;
-    transition: opacity 0.15s ease, transform 0.15s ease !important;
-    user-select: none !important;
-    pointer-events: none !important;
-  }
-  .genweb-draggable-item:hover .genweb-drag-handle {
-    opacity: 1 !important;
-    transform: scale(1.04) !important;
   }
   .genweb-draggable-item.genweb-dragging {
     opacity: 0.35 !important;
@@ -839,16 +951,14 @@ const MainPagePlain = () => {
         element.setAttribute('draggable', 'true');
         element.classList.add('genweb-draggable-item');
 
-        if (!element.querySelector('.genweb-drag-handle')) {
-          const handle = document.createElement('div');
-          handle.className = 'genweb-drag-handle';
-          handle.innerHTML = '<span>⠿</span> Reorder';
-          element.appendChild(handle);
+        const themeToggle = document.getElementById('theme-toggle');
+        if (themeToggle) {
+          themeToggle.remove();
         }
 
         element.addEventListener('dragstart', (e) => {  
           const interactive = e.target.closest('button, a, input, textarea, select, [contenteditable="true"]');
-          if (interactive && !interactive.classList.contains('genweb-drag-handle')) {
+          if (interactive) {
             e.preventDefault();
             return;
           }
@@ -1083,6 +1193,20 @@ const MainPagePlain = () => {
   };
 
   const getAIResponse = async () => {
+    if (projectid && String(projectid).startsWith('dummy-')) {
+      const template = SHOWCASE_TEMPLATES[projectid] || SHOWCASE_TEMPLATES["dummy-apex-portfolio"];
+      if (template) {
+        setGeneratedHTML(template.html || "");
+        setGeneratedCSS(template.css || "");
+        setGeneratedJS(template.js || "");
+        setGeneratedText(`Welcome to ${template.name}! Explore the code, reorder sections, test interactions, or prompt AI to customize.`);
+        setAimessage([`Welcome to ${template.name}! You can view the code, reorder sections, test interactions, or prompt me to customize it.`]);
+        setUserprompts([`Explore ${template.name}`]);
+        setUserpromptsTiming([new Date().toLocaleTimeString()]);
+        setLoading(false);
+        return;
+      }
+    }
     setLoading(true);
     try {
       const response = await fetch(`${BACKEND_URL}chat/getchat/${projectid}`, {
@@ -1374,6 +1498,19 @@ const MainPagePlain = () => {
                 className="mr-1.5 text-xs md:text-sm text-indigo-500"
               />
               <span>Code</span>
+            </button>
+
+            <button
+              type="button"
+              className="flex items-center rounded-full px-3 py-1.5 text-xs md:text-sm font-medium transition-all duration-300 bg-gray-800 text-gray-300 hover:text-white hover:bg-gray-700 cursor-pointer"
+              onClick={handleOpenSectionReorderModal}
+              title="Reorder page sections"
+            >
+              <FontAwesomeIcon
+                icon={faArrowsUpDown}
+                className="mr-1.5 text-xs md:text-sm text-indigo-400"
+              />
+              <span>Reorder</span>
             </button>
             </div>
           </div>

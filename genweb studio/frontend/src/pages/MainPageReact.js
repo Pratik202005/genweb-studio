@@ -24,8 +24,9 @@ import { useSpring, animated } from "@react-spring/web";
 import { useDrag } from "@use-gesture/react";
 
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faBarsStaggered, faCode, faWindowMaximize,faWandMagicSparkles,faFileExport, faRocket, faFloppyDisk, faHexagonNodes, faCopy, faLock, faArrowLeft, faFileArrowDown} from "@fortawesome/free-solid-svg-icons";
+import { faBarsStaggered, faCode, faWindowMaximize,faWandMagicSparkles,faFileExport, faRocket, faFloppyDisk, faHexagonNodes, faCopy, faLock, faArrowLeft, faFileArrowDown, faArrowsUpDown} from "@fortawesome/free-solid-svg-icons";
 import { faReact, faHtml5, faCss3Alt, faSquareJs  } from "@fortawesome/free-brands-svg-icons";
+import { SHOWCASE_TEMPLATES } from '../data/showcaseTemplates';
 import { useUser } from '../hooks/userContext';
 import { 
   useGenerationTracker, 
@@ -168,6 +169,17 @@ export default function MainPageReact({children}) {
   const [userpromptsTiming,setUserpromptsTiming] = useState([]);
   
   const getProjectData = async (pid) => {
+    if (!pid) return;
+    if (String(pid).startsWith('dummy-')) {
+      const template = SHOWCASE_TEMPLATES[pid];
+      if (template && (template.projectType === 'plain' || template.projectType === false)) {
+        console.log("[GenWeb Studio] Detected Plain showcase project. Redirecting to /main/plain/" + pid);
+        window.location.replace(`/main/plain/${pid}`);
+        return;
+      }
+      setUserIsOwner(true);
+      return;
+    }
     try {
         const response = await fetch(`${BACKEND_URL}project/${pid}`, {
             method: "GET",
@@ -213,6 +225,15 @@ export default function MainPageReact({children}) {
   const [prompt, setPrompt] = useState('');
   const [projectStructure, setProjectStructure] = useState(DEFAULT_REACT_PROJECT);
   const getAIResponse = async ()=>{
+    if (projectid && String(projectid).startsWith('dummy-')) {
+      const template = SHOWCASE_TEMPLATES[projectid];
+      if (template && (template.projectType === 'plain' || template.projectType === false)) {
+        window.location.replace(`/main/plain/${projectid}`);
+        return;
+      }
+      setLoading(false);
+      return;
+    }
     setLoading(true);
     try {
       const response = await fetch(`${BACKEND_URL}chat/getchat/${projectid}`,{
@@ -689,6 +710,30 @@ export default function MainPageReact({children}) {
               className="mr-1.5 text-xs md:text-sm text-indigo-500" 
             />
             <span>Code</span>
+          </button>
+
+          <button
+            type="button"
+            className="flex items-center rounded-full px-3 py-1.5 text-xs md:text-sm font-medium transition-all duration-300 bg-gray-800 text-gray-300 hover:text-white hover:bg-gray-700 cursor-pointer"
+            onClick={() => {
+              Swal.fire({
+                icon: 'info',
+                title: '<span class="text-white text-lg font-bold">Component Ordering</span>',
+                html: '<div class="text-left text-zinc-300 text-sm space-y-2"><p>In this React workspace, components are rendered in <code>/App.js</code>.</p><p>Switch to the <strong>Code</strong> tab or ask the AI in the chat: <em>"Move the [Section Name] above [Other Section]"</em> to instantly reorder!</p></div>',
+                confirmButtonColor: '#6366f1',
+                confirmButtonText: 'Got It',
+                background: '#121214',
+                color: '#f4f4f5',
+                customClass: { popup: 'border border-zinc-800 rounded-2xl shadow-2xl max-w-md' }
+              });
+            }}
+            title="Reorder components"
+          >
+            <FontAwesomeIcon 
+              icon={faArrowsUpDown} 
+              className="mr-1.5 text-xs md:text-sm text-indigo-400" 
+            />
+            <span>Reorder</span>
           </button>
           </div>
         </div>

@@ -133,7 +133,19 @@ exports.voteProject = async (req, res) => {
 
 exports.getOneProject = async (req, res) => {
     try {
-        const project = await Project.findById(req.params.pid);
+        const { pid } = req.params;
+        if (pid && String(pid).startsWith('dummy-')) {
+            const isReact = pid.includes('react') || pid.includes('zenith');
+            return res.status(200).json({
+                _id: pid,
+                name: "Showcase Template",
+                description: "Curated community showcase template",
+                projectType: isReact ? "react" : "plain",
+                chats: [],
+                votes: { upvotes: [], downvotes: [] }
+            });
+        }
+        const project = await Project.findById(pid);
         if (!project) {
             return res.status(404).json({ message: 'Project not found' });
         }

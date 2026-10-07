@@ -374,9 +374,16 @@ async function callGeminiAPI(systemInstruction, userPrompt) {
 
 exports.chat = async (req, res) => {
   const projectId = req.params.pid;
-  const project = await Project.findById(projectId);
-  if (!project) {
-    return res.status(404).json({ error: "Project not found" });
+  let project = null;
+  if (projectId && !String(projectId).startsWith('dummy-')) {
+    try {
+      project = await Project.findById(projectId);
+    } catch (err) {}
+    if (!project) {
+      return res.status(404).json({ error: "Project not found" });
+    }
+  } else {
+    project = { _id: projectId, chats: [], isShowcase: true, save: async () => {} };
   }
 
   const isAuth =
@@ -470,7 +477,7 @@ CRITICAL INCREMENTAL EDITING RULES:
 3. STRUCTURE & COMPLIANCE:
    - The body MUST keep a single container div with id 'layout' as the root element.
    - All top-level sections directly inside #layout MUST have the CSS classes 'draggable' and 'vertical' (e.g., <header class="draggable vertical">, <section class="draggable vertical">, <footer class="draggable vertical">).
-   - Keep the color palette selector button with id 'theme-toggle' at the top right.
+   - Do NOT add any extra floating theme-toggle or palette buttons unless the user explicitly requests one.
    - MULTI-PAGE ARCHITECTURE: If the user requests a multi-page website or multiple pages/views (e.g. Home, Products, Features, Contact, About, Cart):
      * Implement it as a seamless Single Page Application (SPA) multi-page architecture inside the single HTML file.
      * Create separate modular view sections directly inside #layout: e.g. <section id='home-view' class='page-view draggable vertical'>...</section>, <section id='products-view' class='page-view draggable vertical' style='display: none;'>...</section>, <section id='contact-view' class='page-view draggable vertical' style='display: none;'>...</section>.
@@ -511,13 +518,8 @@ Apply ONLY the changes requested by the user, keeping all other existing structu
 
 Inside the body, there must be a single container div with id 'layout' as the root element. Divide the page into clear, beautiful modular sections (e.g. <header class="draggable vertical">, <section class="draggable vertical">, <footer class="draggable vertical">) placed directly inside this layout div. Every top-level section inside layout must have the CSS class 'draggable' and 'vertical' so users can drag and drop reorder them.
 
-MULTI-PAGE ARCHITECTURE:
-If the user asks for a multi-page website or multiple pages (e.g. Home, Products, Features, Contact, Cart), implement it as an interactive Single Page Application (SPA) architecture where each page is a modular section with class 'page-view draggable vertical' (active page visible, other pages style='display: none;') toggled smoothly via navbar links and a switchPage(pageId) JavaScript function. NEVER use external links like href='products.html' or href='/products' and NEVER call window.location.href or location.reload(). All links should point to sections of the same page (#hero, #products-view, etc.), or keep href="#".
-
-Incorporate a color palette selector that is hidden by default and can be toggled by clicking a color change button with the id 'theme-toggle' placed at the top right of the page whose background colour is white and text colour to be black.
-
 COLOR & THEME DIRECTIVE (HIGHEST PRIORITY):
-Strictly follow the user's requested color scheme and mood. If the user mentions "bright color", "light theme", "colorful", "pastel", or "clean white": you MUST design the entire website using clean, bright, and vibrant colors (e.g. #ffffff, #f8fafc backgrounds, dark legible text #0f172a, and lively colorful accents). Do NOT default to dark or black backgrounds when bright or light is requested!
+Strictly follow the user's requested color scheme and mood. If the user mentions "bright color", "light theme", "colorful", "pastel", or "clean white": you MUST design the entire website using clean, bright, and vibrant colors (e.g. #ffffff, #f8fafc backgrounds, dark legible text #0f172a, and lively colorful accents). Do NOT default to dark or black backgrounds when bright or light is requested! Do NOT add unwanted theme-toggle or palette selector buttons.
 
 Inside the 'html' property, use single quotes for HTML attribute values (e.g. <div class='card' id='header'>) to avoid JSON escaping issues.
 
@@ -668,6 +670,9 @@ All elements must have a draggable class and vertical or horizontal class. DO NO
 
 exports.getchat = async (req, res) => {
   const { pid } = req.params;
+  if (pid && String(pid).startsWith('dummy-')) {
+    return res.status(200).json({ chats: [] });
+  }
   try {
     const project = await Project.findById(pid);
     if (!project) {

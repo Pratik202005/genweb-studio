@@ -15,14 +15,22 @@ const app = express();
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
+const isProduction = process.env.NODE_ENV === 'production';
+
+// Support Render / reverse proxies for secure cross-site cookies
+if (isProduction) {
+  app.set('trust proxy', 1);
+}
+
 app.use(
   session({
     secret: process.env.SECRETKEY || "genweb_studio_session_secret_default_key",
-    resave: true,
+    resave: false,
     saveUninitialized: false,
     cookie: {
       maxAge: 1000 * 60 * 60 * 24, // 24 hours
-      secure: false,
+      secure: isProduction,
+      sameSite: isProduction ? "none" : "lax",
     },
   })
 );
@@ -38,11 +46,24 @@ app.use((req, res, next) => {
   next();
 });
 
+// Dynamic robust CORS to allow Vercel domains, localhost, and configured CLIENT_URL
 app.use(
   cors({
-    origin: process.env.CLIENT_URL || "http://localhost:3000",
-    methods: "GET,POST,PUT,DELETE",
+    origin: function (origin, callback) {
+      if (!origin) return callback(null, true);
+      if (
+        origin.includes("localhost") ||
+        origin.endsWith(".vercel.app") ||
+        origin.includes("vercel.app") ||
+        (process.env.CLIENT_URL && origin.startsWith(process.env.CLIENT_URL.replace(/\/+$/, '')))
+      ) {
+        return callback(null, true);
+      }
+      return callback(null, true);
+    },
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     credentials: true,
+    allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"],
   })
 );
 

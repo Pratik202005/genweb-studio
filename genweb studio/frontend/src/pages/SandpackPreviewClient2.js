@@ -26,16 +26,17 @@ function SandpackPreviewClient2() {
             console.log(client);
             const result = await client.getCodeSandboxURL();
             // console.log(result);
-            if (action?.actionType == "deploy") {
-                const link = 'https://' + result?.sandboxId + '.csb.app';
-                // setTimeout(() => {
-                //     window.location.assign(link);
-                // }, 10000); 
-                window.location.assign(link);
-                console.log(result?.sandboxId);
-                console.log(link);
-            } else if (action?.actionType == "export") {
-                window.location.assign(result?.editorUrl);
+            if (action?.actionType === "deploy") {
+                if (result?.sandboxId) {
+                    const link = 'https://' + result.sandboxId + '.csb.app';
+                    window.open(link, '_blank', 'noopener,noreferrer');
+                } else if (result?.editorUrl) {
+                    window.open(result.editorUrl, '_blank', 'noopener,noreferrer');
+                }
+            } else if (action?.actionType === "export") {
+                if (result?.editorUrl) {
+                    window.open(result.editorUrl, '_blank', 'noopener,noreferrer');
+                }
             }
         }
     }

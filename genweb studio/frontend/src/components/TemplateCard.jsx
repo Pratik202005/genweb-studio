@@ -1,33 +1,64 @@
 import { useVoting } from '../hooks/useVoting';
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faReact, faHtml5, faCss3Alt, faSquareJs  } from "@fortawesome/free-brands-svg-icons";
+import Swal from 'sweetalert2';
 
-const handleRedirect = (projectType, id) => {
-  const isReact = projectType === true || projectType === "react";
-  if (isReact) {
-      window.location.href = '/main/react/' + id;
+const handleRedirect = (projectType, id, title, description) => {
+  if (id && !String(id).startsWith('dummy-')) {
+    const isReact = projectType === true || projectType === "react";
+    if (isReact) {
+        window.location.href = '/main/react/' + id;
+    } else {
+        window.location.href = '/main/plain/' + id;
+    }
   } else {
-      window.location.href = '/main/plain/' + id;
+    Swal.fire({
+      icon: 'info',
+      title: `<span class="text-white font-bold">${title || 'Showcase Project'}</span>`,
+      html: `
+        <div class="text-left text-zinc-300 text-sm space-y-3 pt-2">
+          <p>${description || 'Curated community project template synthesized with GenWeb Studio.'}</p>
+          <div class="p-3 bg-zinc-800/80 rounded-xl text-xs text-zinc-300 flex items-center justify-between">
+            <span>Framework:</span>
+            <strong class="text-indigo-400 font-semibold uppercase">${projectType === 'react' || projectType === true ? 'React.js' : 'HTML / CSS / JS'}</strong>
+          </div>
+        </div>
+      `,
+      showCancelButton: true,
+      confirmButtonText: 'Generate Website',
+      cancelButtonText: 'Close',
+      confirmButtonColor: '#6366F1',
+      cancelButtonColor: '#27272A',
+      background: '#121214',
+      color: '#F4F4F5',
+      customClass: {
+        popup: 'border border-zinc-800 rounded-2xl shadow-2xl',
+      }
+    }).then((res) => {
+      if (res.isConfirmed) {
+        window.location.href = '/';
+      }
+    });
   }
 };
 
 export const TemplateCard = ({ id, title, description, initialVotes, projectType, user }) => {
-    const { votes, loading, error, handleVote } = useVoting(id, initialVotes, user);
+    const { votes, loading, handleVote } = useVoting(id, initialVotes, user);
     let type = projectType;
     return (
       <div className="bg-zinc-900/40 backdrop-blur-xl border border-zinc-800/80 hover:border-zinc-700/80 rounded-2xl p-6 hover:-translate-y-1 hover:shadow-xl hover:shadow-black/40 transition-all duration-300 ease-out flex flex-col justify-between cursor-pointer group">
-        <div className="flex items-center justify-between mb-3" onClick={()=>{handleRedirect(projectType, id)}}>
+        <div className="flex items-center justify-between mb-3" onClick={()=>{handleRedirect(projectType, id, title, description)}}>
           <h3 className="text-lg font-bold text-white group-hover:text-indigo-300 transition-colors">{title}</h3>
         </div>
 
         <div className="text-zinc-400 text-sm leading-relaxed mb-5 h-24 overflow-hidden text-ellipsis line-clamp-4"
-        onClick={()=>{handleRedirect(projectType, id)}}
+        onClick={()=>{handleRedirect(projectType, id, title, description)}}
         >{description}</div>
         
         <div className="flex items-center justify-between w-full">
           <div className="flex items-center">
             <button 
-              onClick={() =>{if(user) handleVote('up')}}
+              onClick={() => handleVote('up')}
               disabled={loading}
               className="group flex items-center gap-2 px-3 py-2 rounded-lg 
                 hover:bg-slate-800 transition-colors disabled:opacity-50"
@@ -51,7 +82,7 @@ export const TemplateCard = ({ id, title, description, initialVotes, projectType
               </span>
             </button>
             <button 
-              onClick={() => {if(user) handleVote('down')}}
+              onClick={() => handleVote('down')}
               disabled={loading}
               className="group flex items-center gap-2 px-3 py-2 rounded-lg 
                 hover:bg-slate-800 transition-colors disabled:opacity-50"

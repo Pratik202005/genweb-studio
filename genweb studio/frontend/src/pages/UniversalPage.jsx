@@ -66,6 +66,89 @@ export const UniversalPage = () => {
     else setMount(true);
   },[searchTerm]);
 
+const CURATED_SHOWCASE_TEMPLATES = [
+  {
+    _id: "dummy-apex-portfolio",
+    name: "Apex Portfolio Studio",
+    description: "Ultra-sleek personal developer portfolio with interactive project showcases, responsive timeline, skills grid, and contact modal.",
+    projectType: "react",
+    votes: {
+      upvotes: Array.from({ length: 148 }, (_, i) => `up-${i}`),
+      downvotes: Array.from({ length: 4 }, (_, i) => `dn-${i}`),
+    },
+  },
+  {
+    _id: "dummy-novu-saas",
+    name: "Novu SaaS Landing Page",
+    description: "High-conversion product landing page featuring interactive pricing calculators, testimonial carousels, feature comparisons, and email signup.",
+    projectType: "react",
+    votes: {
+      upvotes: Array.from({ length: 215 }, (_, i) => `up-${i}`),
+      downvotes: Array.from({ length: 9 }, (_, i) => `dn-${i}`),
+    },
+  },
+  {
+    _id: "dummy-lumina-agency",
+    name: "Lumina Creative Agency",
+    description: "Vibrant bright-themed digital agency website with bold typography, interactive client case studies, team grid, and service rate cards.",
+    projectType: "plain",
+    votes: {
+      upvotes: Array.from({ length: 94 }, (_, i) => `up-${i}`),
+      downvotes: Array.from({ length: 2 }, (_, i) => `dn-${i}`),
+    },
+  },
+  {
+    _id: "dummy-zenith-ai",
+    name: "Zenith AI Analytics Hub",
+    description: "Comprehensive web app dashboard with telemetry graphs, prompt history, user controls, and dynamic dark/light theme switching.",
+    projectType: "react",
+    votes: {
+      upvotes: Array.from({ length: 182 }, (_, i) => `up-${i}`),
+      downvotes: Array.from({ length: 11 }, (_, i) => `dn-${i}`),
+    },
+  },
+  {
+    _id: "dummy-krafted-store",
+    name: "Krafted Artisan Storefront",
+    description: "Clean e-commerce store with functional shopping cart drawer, category filtering, product preview modals, and customer reviews.",
+    projectType: "plain",
+    votes: {
+      upvotes: Array.from({ length: 136 }, (_, i) => `up-${i}`),
+      downvotes: Array.from({ length: 6 }, (_, i) => `dn-${i}`),
+    },
+  },
+  {
+    _id: "dummy-pulse-magazine",
+    name: "Pulse Tech Magazine",
+    description: "Modern editorial blog with live reading progress bar, category filters, newsletter subscriptions, and markdown code formatting.",
+    projectType: "plain",
+    votes: {
+      upvotes: Array.from({ length: 77 }, (_, i) => `up-${i}`),
+      downvotes: Array.from({ length: 1 }, (_, i) => `dn-${i}`),
+    },
+  },
+  {
+    _id: "dummy-fitness-track",
+    name: "FitPulse Workout Tracker",
+    description: "Interactive workout tracker with streak counters, weekly progress graphs, meal planner, and motivational audio cues.",
+    projectType: "react",
+    votes: {
+      upvotes: Array.from({ length: 165 }, (_, i) => `up-${i}`),
+      downvotes: Array.from({ length: 14 }, (_, i) => `dn-${i}`),
+    },
+  },
+  {
+    _id: "dummy-aura-bistro",
+    name: "Aura Artisan Bistro & Cafe",
+    description: "Warm, appetizing restaurant landing page with online table reservations, interactive seasonal menu cards, and location hours.",
+    projectType: "plain",
+    votes: {
+      upvotes: Array.from({ length: 112 }, (_, i) => `up-${i}`),
+      downvotes: Array.from({ length: 5 }, (_, i) => `dn-${i}`),
+    },
+  },
+];
+
   const getAllProjects = async () => {
     try {
       setIsLoading(true);
@@ -76,26 +159,24 @@ export const UniversalPage = () => {
         },
       });
 
-      if (!response.ok) {
-        throw new Error("Failed to fetch projects");
+      let backendProjects = [];
+      if (response.ok) {
+        backendProjects = await response.json();
       }
 
-      const data = await response.json();
-      const sortedTemplates = (data || []).sort((a, b) => {
-        const aCount = a.voteCount ?? (a.votes?.upvotes?.length || 0);
-        const bCount = b.voteCount ?? (b.votes?.upvotes?.length || 0);
-        if (aCount === bCount) {
-          const aUp = a.votes?.upvotes?.length || 0;
-          const bUp = b.votes?.upvotes?.length || 0;
-          return bUp - aUp;
-        }
+      const combined = (backendProjects && backendProjects.length > 0)
+        ? [...backendProjects, ...CURATED_SHOWCASE_TEMPLATES]
+        : CURATED_SHOWCASE_TEMPLATES;
+
+      const sortedTemplates = combined.sort((a, b) => {
+        const aCount = (a.votes?.upvotes?.length || 0) - (a.votes?.downvotes?.length || 0);
+        const bCount = (b.votes?.upvotes?.length || 0) - (b.votes?.downvotes?.length || 0);
         return bCount - aCount;
       });
       setTemplates(sortedTemplates);
-      console.log(data);
     } catch (err) {
-      setError(err.message);
-      console.log(error);
+      console.warn("Using fallback showcase templates:", err);
+      setTemplates(CURATED_SHOWCASE_TEMPLATES);
     } finally {
       setIsLoading(false);
     }

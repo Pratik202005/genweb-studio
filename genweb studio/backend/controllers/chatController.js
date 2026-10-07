@@ -465,6 +465,7 @@ CRITICAL INCREMENTAL EDITING RULES:
    - For text or branding changes (e.g., "change name of store to ap"): update ONLY the corresponding text, headers, title, and branding throughout the HTML/JS. Keep all products, layout, images, and other sections intact.
    - For additions (e.g., "add a contact form" or "add a FAQ section"): insert the new section into the existing <div id="layout"> with class "draggable vertical", and add the corresponding CSS styles and JS handlers without deleting any existing sections.
    - For style/theme updates (e.g., "change background to dark" or "make buttons rounded"): update only the relevant CSS classes/variables and style rules.
+   - COLOR & THEME DIRECTIVE (HIGHEST PRIORITY): You MUST strictly follow the user's color theme preferences. If the user mentions "bright color", "light theme", "colorful", "pastel", or "clean white": YOU MUST OVERRIDE AND REPLACE all previous dark/black backgrounds, gradients, and cards with clean bright/light backgrounds (#ffffff, #f8fafc) and sharp dark text (#0f172a). Never keep dark or black backgrounds when the user asks for bright or light colors!
    - For deletions: remove only the specific section or element the user asked to remove.
 3. STRUCTURE & COMPLIANCE:
    - The body MUST keep a single container div with id 'layout' as the root element.
@@ -515,6 +516,9 @@ If the user asks for a multi-page website or multiple pages (e.g. Home, Products
 
 Incorporate a color palette selector that is hidden by default and can be toggled by clicking a color change button with the id 'theme-toggle' placed at the top right of the page whose background colour is white and text colour to be black.
 
+COLOR & THEME DIRECTIVE (HIGHEST PRIORITY):
+Strictly follow the user's requested color scheme and mood. If the user mentions "bright color", "light theme", "colorful", "pastel", or "clean white": you MUST design the entire website using clean, bright, and vibrant colors (e.g. #ffffff, #f8fafc backgrounds, dark legible text #0f172a, and lively colorful accents). Do NOT default to dark or black backgrounds when bright or light is requested!
+
 Inside the 'html' property, use single quotes for HTML attribute values (e.g. <div class='card' id='header'>) to avoid JSON escaping issues.
 
 Generate a JSON object with four keys: 'html' containing HTML, 'css' containing CSS, 'js' containing JavaScript, and 'explanation' containing description.
@@ -536,6 +540,7 @@ CRITICAL INCREMENTAL EDITING RULES:
 1. DO NOT RECREATE THE ENTIRE PROJECT FROM SCRATCH. Preserve existing components, routes, structure, and CSS.
 2. CHANGE ONLY WHAT THE USER ASKS:
    - Modify the relevant component(s), add new files if needed, or update styles to satisfy the user's request.
+   - COLOR & THEME DIRECTIVE (CRITICAL): If the user requests "bright color", "light theme", "colorful", or pastel colors, YOU MUST OVERRIDE AND REPLACE all previous dark/black backgrounds, gradients, and cards in the CSS/JSX files with clean bright/light backgrounds (#ffffff, #f8fafc) and sharp dark text (#0f172a). Never keep dark or black backgrounds when the user asks for bright or light colors!
    - Keep existing functionality and navigation working.
 3. All JSX top-level elements must retain 'draggable' and 'vertical' or 'horizontal' classes.
 4. Response Format (Return strictly valid JSON only):
@@ -568,6 +573,7 @@ Create a fully functional React.js project using create-react-app or a custom We
 Website should be multipage with routes.
 Use modern React best practices, including functional components and hooks.
 Implement responsive design using only CSS.
+COLOR & THEME DIRECTIVE (HIGHEST PRIORITY): Strictly follow the user's requested color scheme and mood. If the user mentions "bright color", "light theme", "colorful", "pastel", or "clean white": you MUST design the entire website using clean, bright, and vibrant colors (e.g. #ffffff, #f8fafc backgrounds, dark legible text #0f172a, and lively colorful accents). Do NOT default to dark or black backgrounds when bright or light is requested!
 Ensure meaningful, clean, and well-structured code with a component-based architecture.
 Include appropriate error boundaries for error handling.
 Add basic optimizations for performance and SEO (where applicable for SPAs).

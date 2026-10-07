@@ -373,47 +373,90 @@ const MainPagePlain = () => {
     }
 
     const cleanedCode = getCleanedExportHTML(iframeDocument, false);
-    console.log("Cleaned code for download:", cleanedCode);
 
-    // Create a Blob with the HTML content
-    const blob = new Blob([cleanedCode], { type: "text/html" });
+    const blob = new Blob([cleanedCode], { type: "text/html;charset=utf-8" });
     const downloadLink = document.createElement("a");
     downloadLink.href = URL.createObjectURL(blob);
-    downloadLink.download = "downloaded_page.html";
+    downloadLink.download = "index.html";
 
     document.body.appendChild(downloadLink);
     downloadLink.click();
     document.body.removeChild(downloadLink);
     URL.revokeObjectURL(downloadLink.href);
+
+    Swal.fire({
+      icon: 'success',
+      title: 'Downloaded index.html',
+      text: 'Production HTML file downloaded and ready to deploy.',
+      timer: 1600,
+      showConfirmButton: false,
+      background: '#121214',
+      color: '#F4F4F5'
+    });
+  };
+
+  const handleDeploySite = () => {
+    const iframeDocument = iframeRef.current?.contentDocument || iframeRef.current?.contentWindow?.document;
+    const cleanedCode = iframeDocument ? getCleanedExportHTML(iframeDocument, true) : (displayCodedeploy || "<!DOCTYPE html><html><body></body></html>");
+    setDeployedCode(cleanedCode);
+
+    const blob = new Blob([cleanedCode], { type: "text/html;charset=utf-8" });
+    const livePreviewUrl = URL.createObjectURL(blob);
+
+    Swal.fire({
+      icon: 'success',
+      title: '<div class="text-xl font-bold text-white">Website Ready to Deploy!</div>',
+      html: `
+        <div class="text-left text-zinc-300 text-sm space-y-4 pt-2">
+          <p class="text-zinc-400">Your site is bundled and ready. You can test it in a standalone live tab or export the production package.</p>
+          
+          <div class="p-3 bg-zinc-800/80 border border-zinc-700/80 rounded-xl space-y-2">
+            <div class="text-xs font-semibold text-indigo-400 uppercase tracking-wider">Quick Actions</div>
+            <div class="flex flex-col sm:flex-row gap-2 pt-1">
+              <a href="${livePreviewUrl}" target="_blank" rel="noopener noreferrer" 
+                 class="inline-flex items-center justify-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-xs font-semibold transition shadow-md">
+                🚀 Open Standalone Live Site
+              </a>
+              <button id="swal-download-btn"
+                 class="inline-flex items-center justify-center gap-2 px-4 py-2 bg-zinc-700 hover:bg-zinc-600 text-white rounded-lg text-xs font-medium transition">
+                📥 Download index.html
+              </button>
+            </div>
+          </div>
+
+          <div class="p-3 bg-zinc-900 border border-zinc-800 rounded-xl text-xs text-zinc-400 space-y-1.5">
+            <span class="font-semibold text-zinc-200">Free 1-Click Hosting:</span>
+            <p>Drag and drop the downloaded <code>index.html</code> to <strong class="text-indigo-300">Netlify Drop</strong> (netlify.com/drop) or upload to <strong class="text-indigo-300">Vercel</strong> / <strong class="text-indigo-300">GitHub Pages</strong> for permanent free hosting!</p>
+          </div>
+        </div>
+      `,
+      showCancelButton: true,
+      cancelButtonText: 'Done',
+      showConfirmButton: false,
+      background: '#121214',
+      color: '#F4F4F5',
+      customClass: {
+        popup: 'border border-zinc-800 rounded-2xl shadow-2xl max-w-lg',
+      },
+      didOpen: () => {
+        document.getElementById('swal-download-btn')?.addEventListener('click', () => {
+          downloadHtmlContent();
+        });
+      }
+    });
   };
 
   const onActionBtn = (action) => {
+    if (action === "deploy") {
+      handleDeploySite();
+      return;
+    }
     if (setAction) {
       setAction({
         actionType: action,
         timeStamp: Date.now()
       });
-      console.log(action);
-    } else {
-      console.error("setAction is not defined");
     }
-
-    const iframeDocument = iframeRef.current?.contentDocument || iframeRef.current?.contentWindow?.document;
-    if (!iframeDocument) {
-      console.error("Unable to access iframe content.");
-      return;
-    }
-
-    const cleanedCode = getCleanedExportHTML(iframeDocument, true);
-    console.log("Deployable code ready:", cleanedCode);
-    setDeployedCode(cleanedCode);
-
-    setTimeout(() => {
-      if (iframeRef.current && iframeRef.current.contentDocument) {
-        iframeRef.current.contentDocument.documentElement.innerHTML = cleanedCode;
-        console.log("Iframe updated with deployed content.");
-      }
-    }, 100);
   };
 
   const draggableStyles = `
@@ -1295,9 +1338,9 @@ const MainPagePlain = () => {
 
       {/* Right Panel */}
       <div className="w-full md:w-[58%] lg:w-[62%] h-[52vh] md:h-screen flex flex-col bg-gray-900 grow overflow-hidden">
-        {/* Navigation Tabs - Adjusted for mobile */}
-        <nav className="flex flex-row justify-between items-center p-1 md:p-2 border-b border-gray-700 h-[13%] md:h-[9%]">
-          <div className="flex items-center gap-2">
+        {/* Navigation Tabs - Fully responsive and bounded */}
+        <nav className="flex flex-wrap sm:flex-nowrap justify-between items-center px-2.5 sm:px-4 py-2 border-b border-gray-800 bg-gray-900 min-h-[54px] h-auto gap-2 shrink-0 z-20">
+          <div className="flex items-center gap-2 shrink-0">
             <button
               onClick={() => window.location.href = '/'}
               className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-full bg-gray-800 hover:bg-gray-700 text-gray-200 hover:text-white border border-gray-600/70 text-xs md:text-sm font-medium transition shadow-sm cursor-pointer"
@@ -1335,46 +1378,36 @@ const MainPagePlain = () => {
             </div>
           </div>
 
-          {/* Action Buttons - Adjusted for mobile */}
+          {/* Action Buttons - Clean, responsive, and bounded */}
           {
-            userIsOwner?(
-            <div className="flex flex-row gap-2 md:gap-3">
-              <button className="relative group p-1 md:p-2 h-7 w-7 md:h-10 md:w-10 mt-1 rounded-full text-white ring-1 ring-slate-100/60"
+            userIsOwner ? (
+            <div className="flex items-center gap-2 shrink-0">
+              <button 
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-100 border border-zinc-700 hover:border-zinc-600 text-xs sm:text-sm font-medium transition shadow-sm"
                 onClick={downloadHtmlContent}
+                title="Download HTML package"
               >
-                <FontAwesomeIcon icon={faFileArrowDown} className="text-md md:text-xl" />
-                <span className="absolute z-50 left-1/2 bottom-full mb-2 w-max -translate-x-1/2 scale-0 rounded bg-gray-700 text-white text-xs px-2 py-1 opacity-0 transition-all group-hover:scale-100 group-hover:opacity-100">
-                  Download
-                </span>
+                <FontAwesomeIcon icon={faFileArrowDown} className="text-emerald-400 text-xs sm:text-sm" />
+                <span>Download</span>
               </button>
 
-
-              {/* <button className="relative group p-1 md:p-2 h-7 w-7 md:h-10 md:w-10 mt-1 rounded-full text-white ring-1 ring-slate-100/60">
-                <FontAwesomeIcon icon={faFloppyDisk} className="text-md md:text-xl" />
-                <span className="absolute z-50 left-1/2 bottom-full mb-2 w-max -translate-x-1/2 scale-0 rounded bg-gray-700 text-white text-xs px-2 py-1 opacity-0 transition-all group-hover:scale-100 group-hover:opacity-100">
-                  Save Changes
-                </span>
-              </button> */}
-
-
-              <button className="relative group p-1 md:p-2 h-7 w-7 md:h-10 md:w-10 mt-1 rounded-full text-white ring-1 ring-slate-100/60"
-                onClick={() => onActionBtn("deploy")}
+              <button 
+                className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white border border-indigo-500 text-xs sm:text-sm font-semibold transition shadow-md shadow-indigo-600/30"
+                onClick={handleDeploySite}
+                title="Deploy website"
               >
-                <FontAwesomeIcon icon={faRocket} className="text-md md:text-xl" />
-                <span className="absolute z-50 left-1/2 bottom-full mb-2 w-max -translate-x-1/2 scale-0 rounded bg-gray-700 text-white text-xs px-2 py-1 opacity-0 transition-all group-hover:scale-100 group-hover:opacity-100">
-                  Deploy
-                </span>
+                <FontAwesomeIcon icon={faRocket} className="text-white text-xs sm:text-sm" />
+                <span>Deploy</span>
               </button>
             </div>
-            ):(
-              <div className="flex flex-row gap-2 md:gap-3">
-                <button className="relative group p-1 md:p-2 h-7 w-7 md:h-10 md:w-10 mt-1 rounded-full text-white ring-1 ring-slate-100/60"
+            ) : (
+              <div className="flex items-center gap-2 shrink-0">
+                <button 
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-100 border border-zinc-700 text-xs sm:text-sm font-medium transition shadow-sm"
                   onClick={copyProject}
                 >
-                  <FontAwesomeIcon icon={faCopy} className="text-md md:text-xl" />
-                  <span className="absolute z-50 left-1/2 bottom-full mb-2 w-max -translate-x-1/2 scale-0 rounded bg-gray-700 text-white text-xs px-2 py-1 opacity-0 transition-all group-hover:scale-100 group-hover:opacity-100">
-                  Copy
-                </span>
+                  <FontAwesomeIcon icon={faCopy} className="text-indigo-400 text-xs sm:text-sm" />
+                  <span>Copy</span>
                 </button>
               </div>
             )

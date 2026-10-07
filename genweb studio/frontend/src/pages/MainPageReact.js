@@ -24,7 +24,7 @@ import { useSpring, animated } from "@react-spring/web";
 import { useDrag } from "@use-gesture/react";
 
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faBarsStaggered, faCode, faWindowMaximize,faWandMagicSparkles,faFileExport, faRocket, faFloppyDisk, faHexagonNodes, faCopy, faLock, faArrowLeft} from "@fortawesome/free-solid-svg-icons";
+import { faBarsStaggered, faCode, faWindowMaximize,faWandMagicSparkles,faFileExport, faRocket, faFloppyDisk, faHexagonNodes, faCopy, faLock, faArrowLeft, faFileArrowDown} from "@fortawesome/free-solid-svg-icons";
 import { faReact, faHtml5, faCss3Alt, faSquareJs  } from "@fortawesome/free-brands-svg-icons";
 import { useUser } from '../hooks/userContext';
 import { 
@@ -318,16 +318,114 @@ export default function MainPageReact({children}) {
     }
   }, []);
 
+  const downloadReactFiles = () => {
+    try {
+      const files = projectStructure?.files || DEFAULT_REACT_PROJECT.files;
+      const appJsCode = files["/App.js"]?.code || files["App.js"]?.code || "";
+      const appCssCode = files["/App.css"]?.code || files["App.css"]?.code || files["/src/App.css"]?.code || "";
+
+      // Download App.js
+      const blob = new Blob([appJsCode], { type: "text/javascript;charset=utf-8" });
+      const link = document.createElement("a");
+      link.href = URL.createObjectURL(blob);
+      link.download = "App.js";
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(link.href);
+
+      // Download App.css
+      if (appCssCode) {
+        setTimeout(() => {
+          const cssBlob = new Blob([appCssCode], { type: "text/css;charset=utf-8" });
+          const cssLink = document.createElement("a");
+          cssLink.href = URL.createObjectURL(cssBlob);
+          cssLink.download = "App.css";
+          document.body.appendChild(cssLink);
+          cssLink.click();
+          document.body.removeChild(cssLink);
+          URL.revokeObjectURL(cssLink.href);
+        }, 150);
+      }
+
+      Swal.fire({
+        icon: 'success',
+        title: 'React Code Downloaded',
+        text: 'App.js and App.css have been downloaded to your computer.',
+        timer: 1600,
+        showConfirmButton: false,
+        background: '#121214',
+        color: '#F4F4F5'
+      });
+    } catch (err) {
+      console.error("Download error:", err);
+    }
+  };
+
+  const handleDeployReact = () => {
+    if (setAction) {
+      setAction({
+        actionType: "deploy",
+        timeStamp: Date.now()
+      });
+    }
+
+    Swal.fire({
+      icon: 'info',
+      title: '<div class="text-xl font-bold text-white">Deploying React Project</div>',
+      html: `
+        <div class="text-left text-zinc-300 text-sm space-y-4 pt-2">
+          <p class="text-zinc-400">Compiling sandbox and generating deployment preview...</p>
+          
+          <div class="p-3 bg-zinc-800/80 border border-zinc-700/80 rounded-xl space-y-2">
+            <div class="text-xs font-semibold text-indigo-400 uppercase tracking-wider">Quick Actions</div>
+            <div class="flex flex-col sm:flex-row gap-2 pt-1">
+              <button id="swal-export-csb"
+                 class="inline-flex items-center justify-center gap-2 px-3.5 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-xs font-semibold transition shadow-md">
+                ⚡ Open in CodeSandbox
+              </button>
+              <button id="swal-download-react"
+                 class="inline-flex items-center justify-center gap-2 px-3.5 py-2 bg-zinc-700 hover:bg-zinc-600 text-white rounded-lg text-xs font-medium transition">
+                📥 Download Code
+              </button>
+            </div>
+          </div>
+
+          <div class="p-3 bg-zinc-900 border border-zinc-800 rounded-xl text-xs text-zinc-400 space-y-1.5">
+            <span class="font-semibold text-zinc-200">🚀 Production Cloud Hosting:</span>
+            <p>Push this project to your GitHub repository and import to <strong class="text-indigo-300">Vercel</strong> or <strong class="text-indigo-300">Netlify</strong> for instant global CDN deployment!</p>
+          </div>
+        </div>
+      `,
+      showCancelButton: true,
+      cancelButtonText: 'Done',
+      showConfirmButton: false,
+      background: '#121214',
+      color: '#F4F4F5',
+      customClass: {
+        popup: 'border border-zinc-800 rounded-2xl shadow-2xl max-w-lg',
+      },
+      didOpen: () => {
+        document.getElementById('swal-export-csb')?.addEventListener('click', () => {
+          onActionBtn("export");
+        });
+        document.getElementById('swal-download-react')?.addEventListener('click', () => {
+          downloadReactFiles();
+        });
+      }
+    });
+  };
+
   const onActionBtn = (action) => {
     if (setAction) {
-        setAction({
-            actionType: action,
-            timeStamp: Date.now()
-        });
+      setAction({
+        actionType: action,
+        timeStamp: Date.now()
+      });
     } else {
-        console.error("setAction is not defined");
+      console.error("setAction is not defined");
     }
-};
+  };
 
   const handleOnClick = () => {
     setActiveTab("preview");
@@ -552,9 +650,9 @@ export default function MainPageReact({children}) {
     
     {/* Right Panel */}
     <div className="w-full md:w-[58%] lg:w-[62%] h-[52vh] md:h-screen flex flex-col bg-gray-900 grow overflow-hidden relative">
-      {/* Navigation Tabs */}
-      <nav className="flex flex-row justify-between items-center p-1 md:p-2 bg-gray-900 border-b border-gray-700 h-[9%] mb-4">
-        <div className="flex items-center gap-2">
+      {/* Navigation Tabs - Fully responsive and bounded */}
+      <nav className="flex flex-wrap sm:flex-nowrap justify-between items-center px-2.5 sm:px-4 py-2 border-b border-gray-800 bg-gray-900 min-h-[54px] h-auto gap-2 shrink-0 z-20">
+        <div className="flex items-center gap-2 shrink-0">
           <button
             onClick={() => window.location.href = '/'}
             className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-full bg-gray-800 hover:bg-gray-700 text-gray-200 hover:text-white border border-gray-600/70 text-xs md:text-sm font-medium transition shadow-sm cursor-pointer"
@@ -595,47 +693,47 @@ export default function MainPageReact({children}) {
           </div>
         </div>
           
-          {
-            userIsOwner?(
-          <div className='flex flex-row gap-3'>
-          <button
-            className={"relative group p-1 md:p-2 h-8 w-8 md:h-10 md:w-10 mt-1 rounded-full text-white ring-1 ring-slate-100/60" }
-            onClick={() => onActionBtn("export")}
-          
-          >
-            <FontAwesomeIcon icon={faFileExport} className="text-md md:text-xl" />
-            <span className="absolute z-50 left-1/2 bottom-full mb-2 w-max -translate-x-1/2 
-                     scale-0 rounded bg-gray-700 text-white text-xs px-2 py-1 
-                     opacity-0 transition-all group-hover:scale-100 group-hover:opacity-100">
-              Export
-            </span>
-          </button>
-        
-          <button
-            className="relative group p-1 md:p-2 h-8 w-8 md:h-10 md:w-10 mt-1 rounded-full text-white ring-1 ring-slate-100/60"
-            onClick={() => onActionBtn("deploy")}
-          >
-            <FontAwesomeIcon icon={faRocket} className="text-md md:text-xl" />
-            <span className="absolute z-50 left-1/2 bottom-full mb-2 w-max -translate-x-1/2 
-                     scale-0 rounded bg-gray-700 text-white text-xs px-2 py-1 
-                     opacity-0 transition-all group-hover:scale-100 group-hover:opacity-100">
-              Deploy
-            </span>
-          </button>
+        {/* Action Buttons - Clean, responsive, and bounded */}
+        {userIsOwner ? (
+          <div className="flex items-center gap-2 shrink-0">
+            <button 
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-100 border border-zinc-700 hover:border-zinc-600 text-xs sm:text-sm font-medium transition shadow-sm"
+              onClick={downloadReactFiles}
+              title="Download React project files"
+            >
+              <FontAwesomeIcon icon={faFileArrowDown} className="text-emerald-400 text-xs sm:text-sm" />
+              <span>Download</span>
+            </button>
+
+            <button 
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-100 border border-zinc-700 hover:border-zinc-600 text-xs sm:text-sm font-medium transition shadow-sm"
+              onClick={() => onActionBtn("export")}
+              title="Open in CodeSandbox"
+            >
+              <FontAwesomeIcon icon={faFileExport} className="text-indigo-400 text-xs sm:text-sm" />
+              <span className="hidden sm:inline">Sandbox</span>
+            </button>
+
+            <button 
+              className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white border border-indigo-500 text-xs sm:text-sm font-semibold transition shadow-md shadow-indigo-600/30"
+              onClick={handleDeployReact}
+              title="Deploy website"
+            >
+              <FontAwesomeIcon icon={faRocket} className="text-white text-xs sm:text-sm" />
+              <span>Deploy</span>
+            </button>
           </div>
-          ):(
-              <div className="flex flex-row gap-2 md:gap-3">
-                <button className="relative group p-1 md:p-2 h-7 w-7 md:h-10 md:w-10 mt-1 rounded-full text-white ring-1 ring-slate-100/60"
-                  onClick={copyProject}
-                >
-                  <FontAwesomeIcon icon={faCopy} className="text-md md:text-xl" />
-                  <span className="absolute z-50 left-1/2 bottom-full mb-2 w-max -translate-x-1/2 scale-0 rounded bg-gray-700 text-white text-xs px-2 py-1 opacity-0 transition-all group-hover:scale-100 group-hover:opacity-100">
-                  Copy
-                </span>
-                </button>
-              </div>
-            )
-          }
+        ) : (
+          <div className="flex items-center gap-2 shrink-0">
+            <button 
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-100 border border-zinc-700 text-xs sm:text-sm font-medium transition shadow-sm"
+              onClick={copyProject}
+            >
+              <FontAwesomeIcon icon={faCopy} className="text-indigo-400 text-xs sm:text-sm" />
+              <span>Copy</span>
+            </button>
+          </div>
+        )}
       </nav>
       {loading && <GenerationPreviewOverlay tracker={generationTracker} />}
 

@@ -5,7 +5,7 @@
   <img src="https://raw.githubusercontent.com/Pratik202005/genweb-studio/main/genweb%20studio/frontend/public/logo.png" alt="GenWeb Studio Logo" width="96" height="96" />
 
   <h3>AI-Powered Full-Stack Website Generator & Live Sandbox Studio</h3>
-  <p><em>Generate responsive web applications from natural language prompts using Google Gemini and live in-browser sandboxes.</em></p>
+  <p><em>Prompt-to-code AI web studio powered by Google Gemini — turns prompts into live React & HTML apps with real-time Sandpack preview, visual editing, and instant code export.</em></p>
 
   <p>
     <a href="https://genweb-studio-frontend.vercel.app/" target="_blank">

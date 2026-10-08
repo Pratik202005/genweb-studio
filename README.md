@@ -5,7 +5,7 @@
   <img src="https://raw.githubusercontent.com/Pratik202005/genweb-studio/main/genweb%20studio/frontend/public/logo.png" alt="GenWeb Studio Logo" width="96" height="96" />
 
   <h3>AI-Powered Full-Stack Website Generator & Live Sandbox Studio</h3>
-  <p><em>Generate responsive web applications from natural language prompts using Google Gemini and live in-browser sandboxes.</em></p>
+  <p><em>Prompt-to-code AI web studio powered by Google Gemini — turns prompts into live React & HTML apps with real-time Sandpack preview, visual editing, and instant code export.</em></p>
 
   <p>
     <a href="https://genweb-studio-frontend.vercel.app/" target="_blank">
@@ -386,36 +386,12 @@ npm start
 
 ## 🌐 Production Deployment Guide
 
-### Deploying Frontend to Vercel
+Detailed production deployment steps for both Vercel and Render are available in **[DEPLOYMENT_GUIDE.md](DEPLOYMENT_GUIDE.md)**.
 
-1. Push your repository to GitHub.
-2. In the [Vercel Dashboard](https://vercel.com/), select **Add New Project** and import `genweb-studio`.
-3. Set the **Root Directory** to `"genweb studio/frontend"`.
-4. Configure Build Settings:
-   - **Framework Preset**: `Create React App`
-   - **Build Command**: `cross-env CI=false react-scripts build`
-   - **Output Directory**: `build`
-5. Configure Environment Variables:
-   - `REACT_APP_BACKEND_URL`: Production backend URL (e.g. `https://your-backend.onrender.com/`).
-   - `REACT_APP_FIREBASE_*`: Your Firebase project credentials.
-6. Deploy. Client-side routing rewrites are handled by [vercel.json](file:///c:/Users/PRASAD%20SURALKAR/Downloads/genweb%20studio/genweb%20studio/frontend/vercel.json).
-
-### Deploying Backend to Render
-
-1. In [Render Dashboard](https://dashboard.render.com/), create a new **Web Service**.
-2. Connect your repository and configure:
-   - **Root Directory**: `"genweb studio/backend"`
-   - **Environment**: `Node`
-   - **Build Command**: `npm install`
-   - **Start Command**: `node app.js` (or `npm start`)
-3. Add Backend Environment Variables:
-   - `PORT`: `5000` (or leave default for Render)
-   - `NODE_ENV`: `production`
-   - `SECRETKEY`: `your_session_secret`
-   - `CLIENT_URL`: `https://your-frontend-app.vercel.app`
-   - `MONGODB_URI`: Your MongoDB Atlas connection URI
-   - `GEMINI_API_KEY`: Your Google Gemini API key
-4. In the Firebase Console, go to **Authentication** > **Settings** > **Authorized Domains** and add your Vercel deployment domain.
+### Summary
+1. **Frontend (Vercel)**: Import repo, set root directory to `"genweb studio/frontend"`, build command `cross-env CI=false react-scripts build`, add `REACT_APP_*` environment variables.
+2. **Backend (Render)**: Create Web Service, set root directory to `"genweb studio/backend"`, start command `node app.js`, add backend environment variables.
+3. **Firebase**: Add production Vercel domain to **Authorized Domains** in the Firebase Console.
 
 ---
 

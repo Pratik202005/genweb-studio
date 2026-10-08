@@ -17,6 +17,11 @@
   </p>
 
   <p>
+    <a href="ARCHITECTURE.md"><b>📖 System Architecture & Technical Reference</b></a> •
+    <a href="DEPLOYMENT_GUIDE.md"><b>🚀 Production Deployment Guide</b></a>
+  </p>
+
+  <p>
     <img src="https://img.shields.io/badge/React-18.3-61DAFB?style=flat-square&logo=react&logoColor=black" alt="React 18" />
     <img src="https://img.shields.io/badge/Node.js-18+-339933?style=flat-square&logo=node.js&logoColor=white" alt="Node.js" />
     <img src="https://img.shields.io/badge/Express-4.21-000000?style=flat-square&logo=express&logoColor=white" alt="Express" />
@@ -35,13 +40,14 @@
 
 - [Overview](#-overview)
 - [Key Features](#-key-features)
+- [System Architecture (`ARCHITECTURE.md`)](ARCHITECTURE.md)
+- [Production Deployment Guide (`DEPLOYMENT_GUIDE.md`)](DEPLOYMENT_GUIDE.md)
 - [Project Architecture & Directory Structure](#-project-architecture--directory-structure)
 - [Technology Stack](#-technology-stack)
 - [System Architecture & Data Flow](#-system-architecture--data-flow)
 - [REST API Reference](#-rest-api-reference)
 - [Environment Configuration](#-environment-configuration)
 - [Local Development & Quickstart](#-local-development--quickstart)
-- [Production Deployment Guide](#-production-deployment-guide)
 - [Known Limitations & Roadmap](#-known-limitations--roadmap)
 - [Contributing](#-contributing)
 - [Author & Acknowledgments](#-author--acknowledgments)
@@ -95,6 +101,8 @@ The platform generates multi-file React component trees or single-bundle HTML/CS
 genweb-studio/
 ├── LICENSE                        # MIT License
 ├── README.md                      # Project documentation
+├── ARCHITECTURE.md               # Technical system architecture reference
+├── DEPLOYMENT_GUIDE.md           # Step-by-step production deployment guide
 ├── .gitignore                     # Git tracking ignore rules
 └── genweb studio/                 # Main workspace directory
     ├── backend/                   # Express.js REST API & AI generation service
@@ -119,6 +127,8 @@ genweb-studio/
 genweb-studio/
 ├── LICENSE                        # MIT License
 ├── README.md                      # Project documentation
+├── ARCHITECTURE.md               # Technical system architecture reference
+├── DEPLOYMENT_GUIDE.md           # Step-by-step production deployment guide
 ├── .gitignore                     # Root git tracking ignore rules
 └── genweb studio/
     ├── backend/
@@ -126,7 +136,7 @@ genweb-studio/
     │   ├── package.json           # Backend dependencies & start scripts
     │   ├── app.js                 # Server entry point, CORS & session config
     │   ├── config/
-    │   └── passport.js            # Passport Google OAuth strategy setup
+    │   │   └── passport.js        # Passport Google OAuth strategy setup
     │   ├── controllers/
     │   │   ├── authController.js  # Session authentication & Firebase login handlers
     │   │   ├── chatController.js  # Gemini AI prompt execution & code parsing
@@ -376,36 +386,12 @@ npm start
 
 ## 🌐 Production Deployment Guide
 
-### Deploying Frontend to Vercel
+Detailed production deployment steps for both Vercel and Render are available in **[DEPLOYMENT_GUIDE.md](DEPLOYMENT_GUIDE.md)**.
 
-1. Push your repository to GitHub.
-2. In the [Vercel Dashboard](https://vercel.com/), select **Add New Project** and import `genweb-studio`.
-3. Set the **Root Directory** to `"genweb studio/frontend"`.
-4. Configure Build Settings:
-   - **Framework Preset**: `Create React App`
-   - **Build Command**: `cross-env CI=false react-scripts build`
-   - **Output Directory**: `build`
-5. Configure Environment Variables:
-   - `REACT_APP_BACKEND_URL`: Production backend URL (e.g. `https://your-backend.onrender.com/`).
-   - `REACT_APP_FIREBASE_*`: Your Firebase project credentials.
-6. Deploy. Client-side routing rewrites are handled by [vercel.json](file:///c:/Users/PRASAD%20SURALKAR/Downloads/genweb%20studio/genweb%20studio/frontend/vercel.json).
-
-### Deploying Backend to Render
-
-1. In [Render Dashboard](https://dashboard.render.com/), create a new **Web Service**.
-2. Connect your repository and configure:
-   - **Root Directory**: `"genweb studio/backend"`
-   - **Environment**: `Node`
-   - **Build Command**: `npm install`
-   - **Start Command**: `node app.js` (or `npm start`)
-3. Add Backend Environment Variables:
-   - `PORT`: `5000` (or leave default for Render)
-   - `NODE_ENV`: `production`
-   - `SECRETKEY`: `your_session_secret`
-   - `CLIENT_URL`: `https://your-frontend-app.vercel.app`
-   - `MONGODB_URI`: Your MongoDB Atlas connection URI
-   - `GEMINI_API_KEY`: Your Google Gemini API key
-4. In the Firebase Console, go to **Authentication** > **Settings** > **Authorized Domains** and add your Vercel deployment domain.
+### Summary
+1. **Frontend (Vercel)**: Import repo, set root directory to `"genweb studio/frontend"`, build command `cross-env CI=false react-scripts build`, add `REACT_APP_*` environment variables.
+2. **Backend (Render)**: Create Web Service, set root directory to `"genweb studio/backend"`, start command `node app.js`, add backend environment variables.
+3. **Firebase**: Add production Vercel domain to **Authorized Domains** in the Firebase Console.
 
 ---
 

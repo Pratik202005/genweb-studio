@@ -17,6 +17,11 @@
   </p>
 
   <p>
+    <a href="ARCHITECTURE.md"><b>📖 System Architecture & Technical Reference</b></a> •
+    <a href="DEPLOYMENT_GUIDE.md"><b>🚀 Production Deployment Guide</b></a>
+  </p>
+
+  <p>
     <img src="https://img.shields.io/badge/React-18.3-61DAFB?style=flat-square&logo=react&logoColor=black" alt="React 18" />
     <img src="https://img.shields.io/badge/Node.js-18+-339933?style=flat-square&logo=node.js&logoColor=white" alt="Node.js" />
     <img src="https://img.shields.io/badge/Express-4.21-000000?style=flat-square&logo=express&logoColor=white" alt="Express" />
@@ -35,13 +40,14 @@
 
 - [Overview](#-overview)
 - [Key Features](#-key-features)
+- [System Architecture (`ARCHITECTURE.md`)](ARCHITECTURE.md)
+- [Production Deployment Guide (`DEPLOYMENT_GUIDE.md`)](DEPLOYMENT_GUIDE.md)
 - [Project Architecture & Directory Structure](#-project-architecture--directory-structure)
 - [Technology Stack](#-technology-stack)
 - [System Architecture & Data Flow](#-system-architecture--data-flow)
 - [REST API Reference](#-rest-api-reference)
 - [Environment Configuration](#-environment-configuration)
 - [Local Development & Quickstart](#-local-development--quickstart)
-- [Production Deployment Guide](#-production-deployment-guide)
 - [Known Limitations & Roadmap](#-known-limitations--roadmap)
 - [Contributing](#-contributing)
 - [Author & Acknowledgments](#-author--acknowledgments)
@@ -95,6 +101,8 @@ The platform generates multi-file React component trees or single-bundle HTML/CS
 genweb-studio/
 ├── LICENSE                        # MIT License
 ├── README.md                      # Project documentation
+├── ARCHITECTURE.md               # Technical system architecture reference
+├── DEPLOYMENT_GUIDE.md           # Step-by-step production deployment guide
 ├── .gitignore                     # Git tracking ignore rules
 └── genweb studio/                 # Main workspace directory
     ├── backend/                   # Express.js REST API & AI generation service
@@ -119,6 +127,8 @@ genweb-studio/
 genweb-studio/
 ├── LICENSE                        # MIT License
 ├── README.md                      # Project documentation
+├── ARCHITECTURE.md               # Technical system architecture reference
+├── DEPLOYMENT_GUIDE.md           # Step-by-step production deployment guide
 ├── .gitignore                     # Root git tracking ignore rules
 └── genweb studio/
     ├── backend/

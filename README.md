@@ -1,8 +1,9 @@
 <div align="center">
 
-  <img src="https://raw.githubusercontent.com/Pratik202005/genweb-studio/main/genweb%20studio/frontend/public/logo.png" alt="GenWeb Studio Logo" width="96" height="96" />
-
-  <h1>⚡ GenWeb Studio</h1>
+  <h1>
+    <img src="https://raw.githubusercontent.com/Pratik202005/genweb-studio/main/genweb%20studio/frontend/public/logo.png" alt="GenWeb Studio Logo" width="48" height="48" align="center" />
+    GenWeb Studio
+  </h1>
 
   <h3>AI-Powered Full-Stack Website Generator & Live Sandbox Studio</h3>
   <p><em>Prompt-to-code AI web studio powered by Google Gemini — turns prompts into live React & HTML apps with real-time Sandpack preview, visual editing, and instant code export.</em></p>

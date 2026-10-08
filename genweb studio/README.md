@@ -1,8 +1,7 @@
 <div align="center">
 
   <h1>
-    <img src="https://raw.githubusercontent.com/Pratik202005/genweb-studio/main/genweb%20studio/frontend/public/logo.png" alt="GenWeb Studio Logo" width="48" height="48" align="center" />
-    GenWeb Studio
+    <img src="https://raw.githubusercontent.com/Pratik202005/genweb-studio/main/genweb%20studio/frontend/public/logo.png" alt="GenWeb Studio Logo" width="40" height="40" align="absmiddle" />&nbsp;&nbsp;GenWeb Studio
   </h1>
 
   <h3>AI-Powered Full-Stack Website Generator & Live Sandbox Studio</h3>

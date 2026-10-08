@@ -14,13 +14,17 @@ import About from "./pages/About";
 
 import AnimatedBackground from "./components/AnimatedBackground";
 import ErrorBoundary from "./components/ErrorBoundary";
+import { useSmoothScroll } from "./hooks/useSmoothScroll";
 
 const AppContent = () => {
     const location = useLocation();
     const isWorkspace = location.pathname.startsWith('/main/');
 
+    // Enable fluid 60fps smooth scrolling on home and public routes
+    useSmoothScroll(!isWorkspace);
+
     return (
-        <div className={`flex flex-col items-center min-h-screen w-full text-zinc-100 ${isWorkspace ? 'bg-gray-900' : 'bg-transparent'} relative isolate overflow-x-hidden selection:bg-indigo-500/30 selection:text-indigo-200 font-sans`}>
+        <div className={`flex flex-col items-center min-h-screen w-full text-zinc-100 ${isWorkspace ? 'bg-gray-900' : 'bg-transparent'} relative isolate overflow-x-clip selection:bg-indigo-500/30 selection:text-indigo-200 font-sans`}>
             {!isWorkspace && <AnimatedBackground />}
             {!isWorkspace && <Navbar />}
             <main className="flex-grow w-full flex flex-col">

@@ -7,31 +7,34 @@ export const BG_CONFIG = {
   // Base canvas background
   baseColor: "#07070A",
 
-  // 4 Vivid Aurora Blobs (35-45% opacity, 600-800px, blur 90px)
+  // 4 Vivid Aurora Blobs - Multi-stop gradients with hardware-accelerated gentle blur
   blobs: {
-    indigo: { color: "#6366F1", size: 760, opacity: 0.40, blur: 90, duration: 22 },
-    violet: { color: "#A855F7", size: 680, opacity: 0.38, blur: 90, duration: 27 },
-    cyan:   { color: "#22D3EE", size: 640, opacity: 0.36, blur: 90, duration: 24 },
-    teal:   { color: "#14B8A6", size: 600, opacity: 0.35, blur: 90, duration: 29 },
+    indigo: { color: "#6366F1", size: 760, opacity: 0.40, blur: 18, duration: 22 },
+    violet: { color: "#A855F7", size: 680, opacity: 0.38, blur: 18, duration: 27 },
+    cyan:   { color: "#22D3EE", size: 640, opacity: 0.36, blur: 18, duration: 24 },
+    teal:   { color: "#14B8A6", size: 600, opacity: 0.35, blur: 18, duration: 29 },
   },
 
   // Rotating conic beam behind hero logo/heading
   conicBeam: {
     size: 780,
-    opacity: 0.25,
+    opacity: 0.22,
+    blur: 24,
     duration: 24, // seconds for full 360 rotation
   },
 
-  // Neural Network Canvas
+  // Neural Network Canvas & Shape Morphing
   canvas: {
-    particlesDesktop: 50,
-    particlesTablet: 35,
+    particlesDesktop: 52,
+    particlesTablet: 36,
     particlesMobile: 22,
-    maxDistance: 130, // max line connection distance in px
-    particleColor: "rgba(199, 210, 254, 0.75)",
+    maxDistance: 135, // max line connection distance in px
+    particleColor: "rgba(199, 210, 254, 0.85)",
     lineRgb: "99, 102, 241", // indigo connection lines
+    facetRgb: "99, 102, 241", // translucent shape fill
     mouseAttractRadius: 180,
     mouseAttractForce: 0.018,
+    scrollInertiaFactor: 0.35, // smooth drift during scroll
   },
 
   // "Site Assembling" SVG Wireframes (18-25% opacity)
@@ -43,7 +46,7 @@ export const BG_CONFIG = {
   // Cursor Spotlight & 48px Grid
   grid: {
     cellSize: 48,
-    baseLineColor: "rgba(255, 255, 255, 0.05)",
+    baseLineColor: "rgba(255, 255, 255, 0.045)",
     litLineColor: "rgba(34, 211, 238, 0.18)", // glows cyan/indigo where spotlight passes
     spotlightRadius: 420,
     spotlightOpacity: 0.18, // 18% opacity
@@ -55,15 +58,15 @@ export const BG_CONFIG = {
     opacity: 0.85,
   },
 
-  // Parallax rates on scroll (different speed per layer)
+  // Parallax rates on scroll (different speed per layer, lerped for 60fps fluidity)
   parallax: {
-    aurora: 0.04,     // slowest
-    wireframes: 0.08, // medium
-    particles: 0.14,  // faster
+    aurora: 0.035,    // slowest
+    wireframes: 0.07, // medium
+    particles: 0.12,  // internal canvas coordinate parallax
   },
 
-  // Film grain overlay
-  noiseOpacity: 0.03, // 3%
+  // Film grain overlay (optimized zero-cost blend)
+  noiseOpacity: 0.025,
 };
 
 export const AnimatedBackground = () => {
@@ -81,12 +84,17 @@ export const AnimatedBackground = () => {
   const mouseTargetRef = useRef({ x: window.innerWidth * 0.5, y: 300 });
   const spotlightPosRef = useRef({ x: window.innerWidth * 0.5, y: 300 });
 
+  // High-performance smooth scroll interpolation state
+  const targetScrollYRef = useRef(0);
+  const smoothScrollYRef = useRef(0);
+  const lastSmoothScrollYRef = useRef(0);
+
   const animFrameRef = useRef(null);
   const particlesRef = useRef([]);
   const isTabVisibleRef = useRef(true);
   const isHeroInViewRef = useRef(true);
 
-  // 1. Media Queries & Motion Preference
+  // 1. Media Queries, Motion Preference & Scroll Listener
   useEffect(() => {
     const motionQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
     setReducedMotion(motionQuery.matches);
@@ -108,25 +116,13 @@ export const AnimatedBackground = () => {
     };
     window.addEventListener("resize", handleResize);
 
-    // Smooth RAF scroll tracking directly via hardware transforms
-    let ticking = false;
+    // Ultra-lightweight scroll listener: only records window.scrollY without synchronous DOM updates
+    targetScrollYRef.current = window.scrollY;
+    smoothScrollYRef.current = window.scrollY;
+    lastSmoothScrollYRef.current = window.scrollY;
+
     const handleScroll = () => {
-      if (!ticking) {
-        window.requestAnimationFrame(() => {
-          const sy = window.scrollY;
-          if (auroraRef.current) {
-            auroraRef.current.style.transform = `translate3d(0, ${-sy * BG_CONFIG.parallax.aurora}px, 0)`;
-          }
-          if (wireframesRef.current) {
-            wireframesRef.current.style.transform = `translate3d(0, ${-sy * BG_CONFIG.parallax.wireframes}px, 0)`;
-          }
-          if (canvasRef.current) {
-            canvasRef.current.style.transform = `translate3d(0, ${-sy * BG_CONFIG.parallax.particles}px, 0)`;
-          }
-          ticking = false;
-        });
-        ticking = true;
-      }
+      targetScrollYRef.current = window.scrollY;
     };
     window.addEventListener("scroll", handleScroll, { passive: true });
 
@@ -165,7 +161,7 @@ export const AnimatedBackground = () => {
       ([entry]) => {
         isHeroInViewRef.current = entry.isIntersecting;
       },
-      { rootMargin: "300px" }
+      { rootMargin: "400px" }
     );
 
     const heroEl = document.getElementById("hero-section");
@@ -176,16 +172,17 @@ export const AnimatedBackground = () => {
     };
   }, []);
 
-  // 4. Neural Network Canvas Animation Loop (60fps with delta-time, paused when hidden/offscreen)
+  // 4. Neural Network & Shape-Forming Particle Canvas Animation Loop (Fluid 60fps with lerp damping)
   const initParticles = useCallback((count, width, height) => {
     const particles = [];
     for (let i = 0; i < count; i++) {
       particles.push({
         x: Math.random() * width,
         y: Math.random() * height,
-        vx: (Math.random() - 0.5) * 0.6,
-        vy: (Math.random() - 0.5) * 0.6,
+        vx: (Math.random() - 0.5) * 0.5,
+        vy: (Math.random() - 0.5) * 0.5,
         radius: Math.random() * 1.2 + 1.2,
+        isAnchor: i % 7 === 0, // Key anchor nodes with subtle halo glow
       });
     }
     return particles;
@@ -195,7 +192,7 @@ export const AnimatedBackground = () => {
     const canvas = canvasRef.current;
     if (!canvas || reducedMotion) return;
 
-    const ctx = canvas.getContext("2d");
+    const ctx = canvas.getContext("2d", { alpha: true });
     if (!ctx) return;
 
     // Set canvas dimensions capped at DPR = 2
@@ -206,11 +203,11 @@ export const AnimatedBackground = () => {
     const resizeCanvas = () => {
       width = window.innerWidth;
       height = window.innerHeight;
-      canvas.width = width * dpr;
-      canvas.height = height * dpr;
+      canvas.width = Math.round(width * dpr);
+      canvas.height = Math.round(height * dpr);
       canvas.style.width = `${width}px`;
       canvas.style.height = `${height}px`;
-      ctx.scale(dpr, dpr);
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 
       const count =
         deviceType === "mobile"
@@ -230,7 +227,7 @@ export const AnimatedBackground = () => {
     const render = (now) => {
       animFrameRef.current = requestAnimationFrame(render);
 
-      // Smooth spotlight lerp
+      // 1. Smooth spotlight lerp
       const factor = BG_CONFIG.grid.lerpFactor;
       spotlightPosRef.current.x += (mouseTargetRef.current.x - spotlightPosRef.current.x) * factor;
       spotlightPosRef.current.y += (mouseTargetRef.current.y - spotlightPosRef.current.y) * factor;
@@ -238,7 +235,7 @@ export const AnimatedBackground = () => {
       const sx = Math.round(spotlightPosRef.current.x);
       const sy = Math.round(spotlightPosRef.current.y);
 
-      // Direct DOM updates for CSS radial spotlights (bypassing React re-renders for smooth 60fps)
+      // Direct DOM updates for CSS radial spotlights (avoids React re-renders for smooth 60fps)
       if (spotlightBgRef.current) {
         spotlightBgRef.current.style.background = `radial-gradient(circle ${BG_CONFIG.grid.spotlightRadius}px at ${sx}px ${sy}px, rgba(34, 211, 238, 0.12) 0%, rgba(99, 102, 241, ${BG_CONFIG.grid.spotlightOpacity}) 45%, transparent 80%)`;
       }
@@ -246,6 +243,23 @@ export const AnimatedBackground = () => {
         const mask = `radial-gradient(circle ${BG_CONFIG.grid.spotlightRadius * 0.8}px at ${sx}px ${sy}px, black 20%, transparent 85%)`;
         spotlightGridRef.current.style.webkitMaskImage = mask;
         spotlightGridRef.current.style.maskImage = mask;
+      }
+
+      // 2. High-precision Smooth Scroll Interpolation (Damped exponential lerp)
+      const targetScroll = targetScrollYRef.current;
+      const prevScroll = smoothScrollYRef.current;
+      const scrollDiff = targetScroll - prevScroll;
+      smoothScrollYRef.current += scrollDiff * 0.09;
+      const currentScroll = smoothScrollYRef.current;
+      const frameScrollDelta = currentScroll - lastSmoothScrollYRef.current;
+      lastSmoothScrollYRef.current = currentScroll;
+
+      // Smooth parallax for aurora & wireframes (silky smooth, zero notch-stepping)
+      if (auroraRef.current) {
+        auroraRef.current.style.transform = `translate3d(0, ${(-currentScroll * BG_CONFIG.parallax.aurora).toFixed(2)}px, 0)`;
+      }
+      if (wireframesRef.current) {
+        wireframesRef.current.style.transform = `translate3d(0, ${(-currentScroll * BG_CONFIG.parallax.wireframes).toFixed(2)}px, 0)`;
       }
 
       // Pause canvas draw if tab hidden or hero not in view
@@ -266,17 +280,17 @@ export const AnimatedBackground = () => {
       const attractForce = BG_CONFIG.canvas.mouseAttractForce;
       const maxDist = BG_CONFIG.canvas.maxDistance;
       const isInteractive = deviceType !== "mobile";
+      const scrollDrift = frameScrollDelta * BG_CONFIG.canvas.scrollInertiaFactor;
 
-      // 1. Update and draw particles
-      ctx.fillStyle = BG_CONFIG.canvas.particleColor;
+      // 3. Update particles with scroll inertia and boundary wrap
       for (let i = 0; i < particles.length; i++) {
         const p = particles[i];
 
-        // Mouse attraction
+        // Subtle mouse attraction
         if (isInteractive) {
           const dx = mouseX - p.x;
           const dy = mouseY - p.y;
-          const dist = Math.sqrt(dx * dx + dy * dy);
+          const dist = Math.hypot(dx, dy);
           if (dist < attractRadius && dist > 1) {
             p.vx += (dx / dist) * attractForce;
             p.vy += (dy / dist) * attractForce;
@@ -286,31 +300,32 @@ export const AnimatedBackground = () => {
         // Apply velocities with subtle friction
         p.x += p.vx * (dt * 60);
         p.y += p.vy * (dt * 60);
+
+        // Apply smooth scroll inertia (particles glide with scroll like floating dust)
+        p.y -= scrollDrift;
+
         p.vx *= 0.99;
         p.vy *= 0.99;
 
-        // Bounce at boundaries
-        if (p.x < 0) { p.x = 0; p.vx *= -1; }
-        else if (p.x > width) { p.x = width; p.vx *= -1; }
-        if (p.y < 0) { p.y = 0; p.vy *= -1; }
-        else if (p.y > height) { p.y = height; p.vy *= -1; }
-
-        ctx.beginPath();
-        ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
-        ctx.fill();
+        // Continuous wrap-around at boundaries so dots never bunch or leave gaps
+        if (p.x < -20) p.x += width + 40;
+        else if (p.x > width + 20) p.x -= width + 40;
+        if (p.y < -20) p.y += height + 40;
+        else if (p.y > height + 20) p.y -= height + 40;
       }
 
-      // 2. Connecting lines with distance fade and cursor glow
+      // 4. Connecting lines and Shape Formation (Dots connect into constellations & translucent triangular facets)
       for (let i = 0; i < particles.length; i++) {
+        const p1 = particles[i];
         for (let j = i + 1; j < particles.length; j++) {
-          const p1 = particles[i];
           const p2 = particles[j];
           const dx = p1.x - p2.x;
           const dy = p1.y - p2.y;
-          const dist = Math.sqrt(dx * dx + dy * dy);
+          const dist = Math.hypot(dx, dy);
 
           if (dist < maxDist) {
-            let alpha = (1 - dist / maxDist) * 0.28;
+            const lineRatio = 1 - dist / maxDist;
+            let alpha = lineRatio * 0.28;
 
             // Lines near cursor glow brighter
             if (isInteractive) {
@@ -318,7 +333,7 @@ export const AnimatedBackground = () => {
               const midY = (p1.y + p2.y) * 0.5;
               const mouseDist = Math.hypot(mouseX - midX, mouseY - midY);
               if (mouseDist < 160) {
-                alpha += (1 - mouseDist / 160) * 0.45;
+                alpha += (1 - mouseDist / 160) * 0.42;
               }
             }
 
@@ -328,7 +343,43 @@ export const AnimatedBackground = () => {
             ctx.moveTo(p1.x, p1.y);
             ctx.lineTo(p2.x, p2.y);
             ctx.stroke();
+
+            // When a 3rd dot connects to both, form a delicate glowing shape (geometric facet)
+            for (let k = j + 1; k < particles.length; k++) {
+              const p3 = particles[k];
+              const d13 = Math.hypot(p1.x - p3.x, p1.y - p3.y);
+              const d23 = Math.hypot(p2.x - p3.x, p2.y - p3.y);
+
+              if (d13 < maxDist && d23 < maxDist) {
+                const shapeAlpha = Math.min(lineRatio, 1 - d13 / maxDist, 1 - d23 / maxDist) * 0.08;
+                ctx.fillStyle = `rgba(${BG_CONFIG.canvas.facetRgb}, ${shapeAlpha})`;
+                ctx.beginPath();
+                ctx.moveTo(p1.x, p1.y);
+                ctx.lineTo(p2.x, p2.y);
+                ctx.lineTo(p3.x, p3.y);
+                ctx.closePath();
+                ctx.fill();
+              }
+            }
           }
+        }
+      }
+
+      // 5. Draw the Dots (Particles) with soft halos on anchor nodes
+      ctx.fillStyle = BG_CONFIG.canvas.particleColor;
+      for (let i = 0; i < particles.length; i++) {
+        const p = particles[i];
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Subtle outer glow halo on anchor nodes
+        if (p.isAnchor) {
+          ctx.beginPath();
+          ctx.arc(p.x, p.y, p.radius * 2.2, 0, Math.PI * 2);
+          ctx.fillStyle = "rgba(34, 211, 238, 0.16)";
+          ctx.fill();
+          ctx.fillStyle = BG_CONFIG.canvas.particleColor;
         }
       }
     };
@@ -359,19 +410,19 @@ export const AnimatedBackground = () => {
         /* 1. Aurora blob drift loops (20-30s ease-in-out loops) */
         @keyframes driftBlob1 {
           0%, 100% { transform: translate3d(0, 0, 0) scale(1); }
-          50% { transform: translate3d(55px, -45px, 0) scale(1.1); }
+          50% { transform: translate3d(55px, -45px, 0) scale(1.08); }
         }
         @keyframes driftBlob2 {
           0%, 100% { transform: translate3d(0, 0, 0) scale(1); }
-          50% { transform: translate3d(-50px, 40px, 0) scale(1.08); }
+          50% { transform: translate3d(-50px, 40px, 0) scale(1.06); }
         }
         @keyframes driftBlob3 {
           0%, 100% { transform: translate3d(0, 0, 0) scale(1); }
-          50% { transform: translate3d(45px, 50px, 0) scale(0.92); }
+          50% { transform: translate3d(45px, 50px, 0) scale(0.94); }
         }
         @keyframes driftBlob4 {
           0%, 100% { transform: translate3d(0, 0, 0) scale(1); }
-          50% { transform: translate3d(-35px, -35px, 0) scale(1.06); }
+          50% { transform: translate3d(-35px, -35px, 0) scale(1.05); }
         }
 
         /* 2. Slow rotating conic-gradient beam */
@@ -405,7 +456,7 @@ export const AnimatedBackground = () => {
       `}</style>
 
       {/* ================================================================== */}
-      {/* LAYER 2: FOUR VIVID AURORA BLOBS + CONIC BEAM                      */}
+      {/* LAYER 2: FOUR VIVID AURORA BLOBS + CONIC BEAM (Optimized falloffs) */}
       {/* ================================================================== */}
       <div
         ref={auroraRef}
@@ -425,8 +476,10 @@ export const AnimatedBackground = () => {
             width: `${BG_CONFIG.blobs.indigo.size}px`,
             height: `${BG_CONFIG.blobs.indigo.size}px`,
             borderRadius: "50%",
-            background: `radial-gradient(circle, rgba(99, 102, 241, ${BG_CONFIG.blobs.indigo.opacity}) 0%, rgba(99, 102, 241, 0.12) 50%, transparent 70%)`,
+            background: `radial-gradient(circle closest-side, rgba(99, 102, 241, ${BG_CONFIG.blobs.indigo.opacity}) 0%, rgba(99, 102, 241, 0.22) 35%, rgba(99, 102, 241, 0.08) 65%, transparent 100%)`,
             filter: `blur(${BG_CONFIG.blobs.indigo.blur}px)`,
+            transform: "translate3d(0, 0, 0)",
+            willChange: "transform",
             animation: reducedMotion
               ? "none"
               : `driftBlob1 ${BG_CONFIG.blobs.indigo.duration}s ease-in-out infinite`,
@@ -442,8 +495,10 @@ export const AnimatedBackground = () => {
             width: `${BG_CONFIG.blobs.violet.size}px`,
             height: `${BG_CONFIG.blobs.violet.size}px`,
             borderRadius: "50%",
-            background: `radial-gradient(circle, rgba(168, 85, 247, ${BG_CONFIG.blobs.violet.opacity}) 0%, rgba(168, 85, 247, 0.10) 50%, transparent 70%)`,
+            background: `radial-gradient(circle closest-side, rgba(168, 85, 247, ${BG_CONFIG.blobs.violet.opacity}) 0%, rgba(168, 85, 247, 0.20) 35%, rgba(168, 85, 247, 0.06) 65%, transparent 100%)`,
             filter: `blur(${BG_CONFIG.blobs.violet.blur}px)`,
+            transform: "translate3d(0, 0, 0)",
+            willChange: "transform",
             animation: reducedMotion
               ? "none"
               : `driftBlob2 ${BG_CONFIG.blobs.violet.duration}s ease-in-out infinite`,
@@ -459,8 +514,10 @@ export const AnimatedBackground = () => {
             width: `${BG_CONFIG.blobs.cyan.size}px`,
             height: `${BG_CONFIG.blobs.cyan.size}px`,
             borderRadius: "50%",
-            background: `radial-gradient(circle, rgba(34, 211, 238, ${BG_CONFIG.blobs.cyan.opacity}) 0%, rgba(34, 211, 238, 0.08) 50%, transparent 70%)`,
+            background: `radial-gradient(circle closest-side, rgba(34, 211, 238, ${BG_CONFIG.blobs.cyan.opacity}) 0%, rgba(34, 211, 238, 0.18) 35%, rgba(34, 211, 238, 0.05) 65%, transparent 100%)`,
             filter: `blur(${BG_CONFIG.blobs.cyan.blur}px)`,
+            transform: "translate3d(0, 0, 0)",
+            willChange: "transform",
             animation: reducedMotion
               ? "none"
               : `driftBlob3 ${BG_CONFIG.blobs.cyan.duration}s ease-in-out infinite`,
@@ -476,15 +533,17 @@ export const AnimatedBackground = () => {
             width: `${BG_CONFIG.blobs.teal.size}px`,
             height: `${BG_CONFIG.blobs.teal.size}px`,
             borderRadius: "50%",
-            background: `radial-gradient(circle, rgba(20, 184, 166, ${BG_CONFIG.blobs.teal.opacity}) 0%, rgba(20, 184, 166, 0.08) 50%, transparent 70%)`,
+            background: `radial-gradient(circle closest-side, rgba(20, 184, 166, ${BG_CONFIG.blobs.teal.opacity}) 0%, rgba(20, 184, 166, 0.16) 35%, rgba(20, 184, 166, 0.05) 65%, transparent 100%)`,
             filter: `blur(${BG_CONFIG.blobs.teal.blur}px)`,
+            transform: "translate3d(0, 0, 0)",
+            willChange: "transform",
             animation: reducedMotion
               ? "none"
               : `driftBlob4 ${BG_CONFIG.blobs.teal.duration}s ease-in-out infinite`,
           }}
         />
 
-        {/* Rotating conic-gradient beam behind hero logo/heading (~25% opacity) */}
+        {/* Rotating conic-gradient beam behind hero logo/heading */}
         <div
           style={{
             position: "absolute",
@@ -494,8 +553,12 @@ export const AnimatedBackground = () => {
             width: `${BG_CONFIG.conicBeam.size}px`,
             height: `${BG_CONFIG.conicBeam.size}px`,
             borderRadius: "50%",
-            background: `conic-gradient(from 0deg at 50% 50%, transparent 0deg, rgba(99, 102, 241, ${BG_CONFIG.conicBeam.opacity}) 60deg, rgba(34, 211, 238, ${BG_CONFIG.conicBeam.opacity}) 130deg, rgba(168, 85, 247, 0.20) 200deg, transparent 270deg)`,
-            filter: "blur(60px)",
+            background: `conic-gradient(from 0deg at 50% 50%, transparent 0deg, rgba(99, 102, 241, ${BG_CONFIG.conicBeam.opacity}) 60deg, rgba(34, 211, 238, ${BG_CONFIG.conicBeam.opacity}) 130deg, rgba(168, 85, 247, 0.18) 200deg, transparent 270deg)`,
+            WebkitMaskImage: "radial-gradient(circle, black 35%, transparent 70%)",
+            maskImage: "radial-gradient(circle, black 35%, transparent 70%)",
+            filter: `blur(${BG_CONFIG.conicBeam.blur}px)`,
+            transform: "translate3d(0, 0, 0)",
+            willChange: "transform",
             animation: reducedMotion
               ? "none"
               : `rotateConicBeam ${BG_CONFIG.conicBeam.duration}s linear infinite`,
@@ -547,7 +610,7 @@ export const AnimatedBackground = () => {
       )}
 
       {/* ================================================================== */}
-      {/* LAYER 4: SINGLE NEURAL NETWORK CANVAS (50 / 35 / 22 particles)     */}
+      {/* LAYER 4: HIGH-PERFORMANCE SHAPE & DOT CONSTELLATION CANVAS         */}
       {/* ================================================================== */}
       {!reducedMotion && (
         <canvas
@@ -555,8 +618,9 @@ export const AnimatedBackground = () => {
           style={{
             position: "absolute",
             inset: 0,
-            transform: "translate3d(0, 0, 0)",
-            willChange: "transform",
+            width: "100%",
+            height: "100%",
+            pointerEvents: "none",
           }}
         />
       )}
@@ -630,7 +694,7 @@ export const AnimatedBackground = () => {
       />
 
       {/* ================================================================== */}
-      {/* LAYER 8: TOP VIGNETTE & BOTTOM FADE INTO FOOTER                    */}
+      {/* LAYER 7: TOP VIGNETTE & BOTTOM FADE INTO FOOTER                    */}
       {/* ================================================================== */}
       {/* Top Vignette */}
       <div
@@ -657,7 +721,7 @@ export const AnimatedBackground = () => {
       />
 
       {/* ================================================================== */}
-      {/* LAYER 9: 3% SVG FILM GRAIN OVERLAY                                 */}
+      {/* LAYER 8: SUBTLE FILM GRAIN OVERLAY (High-speed composite)          */}
       {/* ================================================================== */}
       <div
         style={{
@@ -665,7 +729,6 @@ export const AnimatedBackground = () => {
           inset: 0,
           opacity: BG_CONFIG.noiseOpacity,
           backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E")`,
-          mixBlendMode: "overlay",
           pointerEvents: "none",
         }}
       />

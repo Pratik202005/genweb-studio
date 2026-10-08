@@ -44,11 +44,16 @@
     color-scheme: dark;
     background-color: #07070A;
     scroll-behavior: smooth;
+    overflow-x: hidden;
   }
 
   body {
     @apply font-sans antialiased text-foreground bg-[#07070A];
     letter-spacing: -0.011em;
+    overflow-x: hidden;
+    overscroll-behavior-y: none;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
   }
 
   /* Custom Thin Scrollbar */

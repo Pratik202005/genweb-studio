@@ -17,21 +17,25 @@ const Navbar = () => {
     const [isVisible, setIsVisible] = useState(true);
     const closeMobileMenu = () => setIsMobileMenuOpen(false);
 
-    // Hide on scroll down, show on scroll up
+    // Hide on scroll down, show on scroll up (RAF throttled for 60fps performance)
     useEffect(() => {
         let lastY = window.scrollY;
+        let ticking = false;
 
         const handleScroll = () => {
-            const currentY = window.scrollY;
-
-            if (currentY > lastY + 8 && currentY > 70) {
-                // Scrolling down past threshold
-                setIsVisible(false);
-            } else if (currentY < lastY - 6) {
-                // Scrolling up
-                setIsVisible(true);
+            if (!ticking) {
+                window.requestAnimationFrame(() => {
+                    const currentY = window.scrollY;
+                    if (currentY > lastY + 14 && currentY > 80) {
+                        setIsVisible(false);
+                    } else if (currentY < lastY - 10) {
+                        setIsVisible(true);
+                    }
+                    lastY = currentY;
+                    ticking = false;
+                });
+                ticking = true;
             }
-            lastY = currentY;
         };
 
         window.addEventListener("scroll", handleScroll, { passive: true });
